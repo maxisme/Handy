@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "מתמלל...",
-    "processing": "מעבד..."
+    "processing": "מעבד...",
+    "pin": "המשך הקלטה",
+    "finish": "סיום"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

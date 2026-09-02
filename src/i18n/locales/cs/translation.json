@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "Přepisuji...",
-    "processing": "Zpracovávám..."
+    "processing": "Zpracovávám...",
+    "pin": "Pokračovat v nahrávání",
+    "finish": "Dokončit"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

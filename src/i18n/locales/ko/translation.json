@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
-    "processing": "처리 중..."
+    "processing": "처리 중...",
+    "pin": "계속 녹음",
+    "finish": "완료"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

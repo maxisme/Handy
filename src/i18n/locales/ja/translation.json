@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "文字起こし中…",
-    "processing": "処理中…"
+    "processing": "処理中…",
+    "pin": "録音を続ける",
+    "finish": "完了"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

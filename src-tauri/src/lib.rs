@@ -712,6 +712,8 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
+            commands::pin_recording,
+            commands::finish_recording,
             commands::is_portable,
             commands::is_update_checks_locked,
             commands::get_app_dir_path,

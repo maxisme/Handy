@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
-    "processing": "İşleniyor..."
+    "processing": "İşleniyor...",
+    "pin": "Kayda devam et",
+    "finish": "Bitir"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"
