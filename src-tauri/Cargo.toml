@@ -120,6 +120,9 @@ windows = { version = "0.61.3", features = [
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
   "Win32_UI_WindowsAndMessaging",
+  # UI Automation focus query for the "copy last transcript" prompt (focus.rs).
+  "Win32_System_Com",
+  "Win32_UI_Accessibility",
 ] }
 winreg = "0.55"
 
@@ -154,6 +157,8 @@ objc2 = "0.6"
 objc2-foundation = "0.3"
 objc2-app-kit = "0.3"
 objc2-service-management = "0.3.2"
+# CFString/CFType plumbing for the accessibility focus query (focus.rs).
+objc2-core-foundation = { version = "0.3", features = ["CFBase", "CFString"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }

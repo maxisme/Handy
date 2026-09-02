@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Nastavení...",
     "checkUpdates": "Zkontrolovat aktualizace...",
-    "copyLastTranscript": "Zkopírovat poslední přepis",
+    "copyLastTranscript": "Kopírovat přepis",
     "unloadModel": "Uvolnit model",
     "model": "Model",
     "quit": "Ukončit",
@@ -345,6 +345,10 @@
           "dontModify": "Neměnit schránku",
           "copyToClipboard": "Kopírovat do schránky"
         }
+      },
+      "copyPrompt": {
+        "label": "Vyskakovací okno pro kopírování",
+        "description": "Zobrazí malé vyskakovací okno pro zkopírování přepisu, když skončí, aniž by bylo aktivní textové pole (nebo když se vložení nezdaří)."
       },
       "autoSubmit": {
         "title": "Automatické odeslání",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "Přepisuji...",
-    "processing": "Zpracovávám..."
+    "processing": "Zpracovávám...",
+    "copyLastTranscript": "Kopírovat poslední přepis",
+    "copied": "Zkopírováno",
+    "dismiss": "Zavřít"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

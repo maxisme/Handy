@@ -514,6 +514,11 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Show a "copy last transcript" prompt on the overlay when a transcript
+    /// finishes while no text input has keyboard focus (or the paste fails),
+    /// so the text is still reachable. See `copy_prompt`.
+    #[serde(default = "default_copy_prompt_enabled")]
+    pub copy_prompt_enabled: bool,
 }
 
 fn default_model() -> String {
@@ -566,6 +571,10 @@ fn default_overlay_position() -> OverlayPosition {
     // Position only matters when the overlay is shown; whether it shows at all is
     // `overlay_style` (Linux defaults that to None). So a single default suffices.
     OverlayPosition::Bottom
+}
+
+fn default_copy_prompt_enabled() -> bool {
+    true
 }
 
 fn default_overlay_style() -> OverlayStyle {
@@ -970,6 +979,7 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         overlay_style: default_overlay_style(),
+        copy_prompt_enabled: default_copy_prompt_enabled(),
     }
 }
 

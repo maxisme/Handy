@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Einstellungen...",
     "checkUpdates": "Nach Updates suchen...",
-    "copyLastTranscript": "Letzte Transkription kopieren",
+    "copyLastTranscript": "Transkript kopieren",
     "unloadModel": "Modell entladen",
     "model": "Modell",
     "quit": "Beenden",
@@ -345,6 +345,10 @@
           "dontModify": "Zwischenablage nicht ändern",
           "copyToClipboard": "In Zwischenablage kopieren"
         }
+      },
+      "copyPrompt": {
+        "label": "Kopier-Popup",
+        "description": "Zeigt ein kleines Popup zum Kopieren des Transkripts, wenn die Transkription endet, während kein Textfeld fokussiert ist (oder das Einfügen fehlschlägt)."
       },
       "autoSubmit": {
         "title": "Automatisch absenden",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "Transkribiere...",
-    "processing": "Verarbeite..."
+    "processing": "Verarbeite...",
+    "copyLastTranscript": "Letztes Transkript kopieren",
+    "copied": "Kopiert",
+    "dismiss": "Schließen"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"

@@ -346,6 +346,10 @@
           "copyToClipboard": "複製到剪貼簿"
         }
       },
+      "copyPrompt": {
+        "label": "複製彈出視窗",
+        "description": "當轉錄完成時沒有聚焦的文字欄位（或貼上失敗），顯示一個小彈出視窗以便複製轉錄內容。"
+      },
       "autoSubmit": {
         "title": "自動送出",
         "description": "插入文字後自動發送指定的按鍵組合。macOS 為 Cmd+Enter，Windows/Linux 為 Super+Enter",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "正在轉錄...",
-    "processing": "處理中..."
+    "processing": "處理中...",
+    "copyLastTranscript": "複製最近的轉錄",
+    "copied": "已複製",
+    "dismiss": "關閉"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

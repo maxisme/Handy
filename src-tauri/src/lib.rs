@@ -8,6 +8,8 @@ mod catalog;
 pub mod cli;
 mod clipboard;
 mod commands;
+mod copy_prompt;
+mod focus;
 mod helpers;
 mod input;
 mod llm_client;
@@ -690,6 +692,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
+            shortcut::change_copy_prompt_enabled_setting,
             shortcut::change_lazy_stream_close_setting,
             shortcut::change_vad_enabled_setting,
             shortcut::change_vad_backend_setting,
@@ -712,6 +715,8 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
+            commands::copy_last_transcript,
+            commands::dismiss_copy_prompt,
             commands::is_portable,
             commands::is_update_checks_locked,
             commands::get_app_dir_path,
@@ -972,6 +977,7 @@ pub fn run(cli_args: CliArgs) {
             WEBVIEW_LOG_STREAMING.store(settings.debug_mode, Ordering::Relaxed);
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
+            app.manage(copy_prompt::LastTranscript::default());
 
             initialize_core_logic(&app_handle);
 

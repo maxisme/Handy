@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Paramètres...",
     "checkUpdates": "Rechercher des mises à jour...",
-    "copyLastTranscript": "Copier la dernière transcription",
+    "copyLastTranscript": "Copier la transcription",
     "unloadModel": "Décharger le modèle",
     "model": "Modèle",
     "quit": "Quitter",
@@ -345,6 +345,10 @@
           "dontModify": "Ne pas modifier le presse-papiers",
           "copyToClipboard": "Copier dans le presse-papiers"
         }
+      },
+      "copyPrompt": {
+        "label": "Fenêtre de copie",
+        "description": "Affiche une petite fenêtre proposant de copier la transcription lorsqu'elle se termine alors qu'aucun champ de texte n'est actif (ou si le collage échoue)."
       },
       "autoSubmit": {
         "title": "Envoi automatique",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "Transcription...",
-    "processing": "Traitement..."
+    "processing": "Traitement...",
+    "copyLastTranscript": "Copier la dernière transcription",
+    "copied": "Copié",
+    "dismiss": "Fermer"
   },
   "whatsNew": {
     "title": "Nouveautés de Handy v{{version}}"

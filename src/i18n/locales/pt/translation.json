@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Configurações...",
     "checkUpdates": "Verificar Atualizações...",
-    "copyLastTranscript": "Copiar última transcrição",
+    "copyLastTranscript": "Copiar transcrição",
     "unloadModel": "Descarregar modelo",
     "model": "Modelo",
     "quit": "Sair",
@@ -345,6 +345,10 @@
           "dontModify": "Não Modificar Área de Transferência",
           "copyToClipboard": "Copiar para Área de Transferência"
         }
+      },
+      "copyPrompt": {
+        "label": "Popup de cópia",
+        "description": "Mostra um pequeno popup para copiar a transcrição quando ela termina sem nenhum campo de texto em foco (ou se a colagem falhar)."
       },
       "autoSubmit": {
         "title": "Envio automático",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "Transcrevendo...",
-    "processing": "Processando..."
+    "processing": "Processando...",
+    "copyLastTranscript": "Copiar última transcrição",
+    "copied": "Copiado",
+    "dismiss": "Fechar"
   },
   "whatsNew": {
     "title": "Novidades no Handy v{{version}}"

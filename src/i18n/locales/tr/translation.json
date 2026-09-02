@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Ayarlar...",
     "checkUpdates": "Güncellemeleri Kontrol Et...",
-    "copyLastTranscript": "Son Transkripti Kopyala",
+    "copyLastTranscript": "Transkripti kopyala",
     "unloadModel": "Modeli Boşalt",
     "model": "Model",
     "quit": "Çıkış",
@@ -345,6 +345,10 @@
           "dontModify": "Panoyu Değiştirme",
           "copyToClipboard": "Panoya Kopyala"
         }
+      },
+      "copyPrompt": {
+        "label": "Kopyalama Penceresi",
+        "description": "Transkripsiyon, hiçbir metin alanı odakta değilken bittiğinde (veya yapıştırma başarısız olduğunda) transkripti kopyalamayı öneren küçük bir pencere gösterir."
       },
       "autoSubmit": {
         "title": "Otomatik Gönder",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
-    "processing": "İşleniyor..."
+    "processing": "İşleniyor...",
+    "copyLastTranscript": "Son transkripti kopyala",
+    "copied": "Kopyalandı",
+    "dismiss": "Kapat"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

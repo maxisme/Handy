@@ -12,7 +12,12 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 
-type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
+type OverlayState =
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "copy-prompt";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -43,6 +48,9 @@ const RecordingOverlay: React.FC = () => {
   // True once live text overflows the cap. A top overlay fades its top edge only
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
+  // Copy prompt: flips to true once the transcript is on the clipboard so the
+  // button can confirm before the backend hides the overlay.
+  const [copied, setCopied] = useState(false);
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
@@ -64,6 +72,9 @@ const RecordingOverlay: React.FC = () => {
           smoothedLevelsRef.current = Array(16).fill(0);
           setLevels(Array(WAVE_BARS).fill(0));
           setStreamText({ committed: "", tentative: "" });
+        }
+        if (overlayState === "copy-prompt") {
+          setCopied(false);
         }
 
         await syncLanguageFromSettings();
@@ -183,12 +194,8 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
-  const cancelBtn = (
-    <button
-      className="sx"
-      aria-label="cancel"
-      onClick={() => commands.cancelOperation()}
-    >
+  const closeBtn = (label: string, onClick: () => void) => (
+    <button className="sx" aria-label={label} onClick={onClick}>
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <path
           d="M4 4 L12 12 M12 4 L4 12"
@@ -199,6 +206,8 @@ const RecordingOverlay: React.FC = () => {
       </svg>
     </button>
   );
+
+  const cancelBtn = closeBtn("cancel", () => commands.cancelOperation());
 
   // dot (left) | waveform (center) | timer + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
@@ -274,6 +283,64 @@ const RecordingOverlay: React.FC = () => {
                 true,
               )
             : listeningRow(open, true)}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Copy prompt: the transcript finished but nothing editable was focused
+  // (or the paste failed), so offer it for the clipboard instead. Same compact
+  // pill as the working state: icon (left) | button (center) | dismiss (right).
+  if (state === "copy-prompt") {
+    const handleCopy = async () => {
+      if (copied) return;
+      const result = await commands.copyLastTranscript();
+      if (result.status === "ok") setCopied(true);
+    };
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact ccopy">
+          <div className="sbase">
+            <div className="sbase-l">
+              <svg
+                className="scopy-icon"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <rect
+                  x="5.5"
+                  y="5.5"
+                  width="8"
+                  height="8"
+                  rx="1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  fill="none"
+                />
+                <path
+                  d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  fill="none"
+                />
+              </svg>
+            </div>
+            <button
+              className={`scopy ${copied ? "done" : ""}`}
+              onClick={handleCopy}
+              disabled={copied}
+            >
+              {copied ? t("overlay.copied") : t("overlay.copyLastTranscript")}
+            </button>
+            <div className="sbase-r">
+              {closeBtn(t("overlay.dismiss"), () =>
+                commands.dismissCopyPrompt(),
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );

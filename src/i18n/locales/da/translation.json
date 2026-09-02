@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Indstillinger...",
     "checkUpdates": "Tjek for opdateringer...",
-    "copyLastTranscript": "Kopiér seneste transskription",
+    "copyLastTranscript": "Kopiér transskription",
     "unloadModel": "Frigør model",
     "model": "Model",
     "quit": "Afslut",
@@ -345,6 +345,10 @@
           "dontModify": "Rør ikke ved udklipsholder",
           "copyToClipboard": "Kopiér til udklipsholder"
         }
+      },
+      "copyPrompt": {
+        "label": "Kopierings-pop-up",
+        "description": "Viser en lille pop-up til at kopiere transskriptionen, når den er færdig, mens intet tekstfelt er i fokus (eller indsættelsen mislykkes)."
       },
       "autoSubmit": {
         "title": "Automatisk indsendelse",
@@ -694,7 +698,10 @@
   },
   "overlay": {
     "transcribing": "Transskriberer...",
-    "processing": "Behandler..."
+    "processing": "Behandler...",
+    "copyLastTranscript": "Kopiér seneste transskription",
+    "copied": "Kopieret",
+    "dismiss": "Luk"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",

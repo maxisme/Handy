@@ -346,6 +346,10 @@
           "copyToClipboard": "クリップボードにコピー"
         }
       },
+      "copyPrompt": {
+        "label": "コピーのポップアップ",
+        "description": "テキスト入力欄にフォーカスがない状態で文字起こしが完了したとき（または貼り付けに失敗したとき）、文字起こしをコピーする小さなポップアップを表示します。"
+      },
       "autoSubmit": {
         "title": "自動送信",
         "description": "テキスト挿入後に選択したキーの組み合わせを自動的に送信します。macOS では Cmd+Enter、Windows/Linux では Super+Enter が適用されます。",
@@ -691,7 +695,10 @@
   },
   "overlay": {
     "transcribing": "文字起こし中…",
-    "processing": "処理中…"
+    "processing": "処理中…",
+    "copyLastTranscript": "最後の文字起こしをコピー",
+    "copied": "コピーしました",
+    "dismiss": "閉じる"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"
