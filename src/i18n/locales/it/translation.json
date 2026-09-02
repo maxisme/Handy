@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "Trascrizione...",
-    "processing": "Elaborazione..."
+    "processing": "Elaborazione...",
+    "pin": "Continua a registrare",
+    "finish": "Fine"
   },
   "whatsNew": {
     "title": "Novità in Handy v{{version}}"

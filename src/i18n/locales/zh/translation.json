@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "正在转录...",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "pin": "继续录音",
+    "finish": "完成"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

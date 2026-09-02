@@ -694,7 +694,9 @@
   },
   "overlay": {
     "transcribing": "ट्रान्सक्राइब गरिँदैछ...",
-    "processing": "प्रशोधन गरिँदैछ..."
+    "processing": "प्रशोधन गरिँदैछ...",
+    "pin": "रेकर्डिङ जारी राख्नुहोस्",
+    "finish": "समाप्त"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} ले 1 सर्टकट रोकिरहेको हुन सक्छ",

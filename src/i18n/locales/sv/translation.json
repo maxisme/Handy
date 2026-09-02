@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "Transkriberar...",
-    "processing": "Bearbetar..."
+    "processing": "Bearbetar...",
+    "pin": "Fortsätt spela in",
+    "finish": "Klar"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"

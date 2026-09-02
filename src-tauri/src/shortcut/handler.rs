@@ -7,6 +7,7 @@ use log::warn;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
+use super::PIN_BINDING_ID;
 use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
 use crate::settings::get_settings;
@@ -46,6 +47,17 @@ pub fn handle_shortcut_event(
             );
         } else {
             warn!("TranscriptionCoordinator is not initialized");
+        }
+        return;
+    }
+
+    // Pin binding: live only while a hold is unlocked; a press pins it, as
+    // the overlay's pin button does. Its release means nothing.
+    if binding_id == PIN_BINDING_ID {
+        if is_pressed {
+            if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {
+                coordinator.pin_recording();
+            }
         }
         return;
     }

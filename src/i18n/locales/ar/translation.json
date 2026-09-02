@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "...جاري التفريغ",
-    "processing": "...جاري المعالجة"
+    "processing": "...جاري المعالجة",
+    "pin": "متابعة التسجيل",
+    "finish": "إنهاء"
   },
   "whatsNew": {
     "title": "الجديد في Handy v{{version}}"

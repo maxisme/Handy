@@ -691,7 +691,9 @@
   },
   "overlay": {
     "transcribing": "Transkribiere...",
-    "processing": "Verarbeite..."
+    "processing": "Verarbeite...",
+    "pin": "Aufnahme fortsetzen",
+    "finish": "Fertig"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"
