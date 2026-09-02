@@ -896,6 +896,22 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_post_process_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_hold_shortcut = "fn";
+    #[cfg(not(target_os = "macos"))]
+    let default_hold_shortcut = "ctrl+alt+space";
+
+    bindings.insert(
+        "transcribe_hold".to_string(),
+        ShortcutBinding {
+            id: "transcribe_hold".to_string(),
+            name: "Transcribe (Hold)".to_string(),
+            description: "Records only while this shortcut is held, whatever the Shortcut Behavior setting. Pressing the Transcribe shortcut while holding it keeps the recording going."
+                .to_string(),
+            default_binding: default_hold_shortcut.to_string(),
+            current_binding: default_hold_shortcut.to_string(),
+        },
+    );
     bindings.insert(
         "cancel".to_string(),
         ShortcutBinding {

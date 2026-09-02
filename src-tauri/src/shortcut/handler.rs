@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
 use crate::settings::get_settings;
-use crate::transcription_coordinator::is_transcribe_binding;
+use crate::transcription_coordinator::{activation_for, is_transcribe_binding};
 use crate::TranscriptionCoordinator;
 
 /// Handle a shortcut event from either implementation.
@@ -19,7 +19,8 @@ use crate::TranscriptionCoordinator;
 /// - Looking up the action in ACTION_MAP
 /// - Handling the cancel binding (only fires when recording)
 /// - Routing transcribe bindings to the coordinator, which applies the
-///   configured activation mode (toggle / push-to-talk / hold-or-toggle)
+///   configured activation mode (toggle / push-to-talk / hold-or-toggle);
+///   the dedicated hold binding is always push-to-talk
 ///
 /// # Arguments
 /// * `app` - The Tauri app handle
@@ -41,7 +42,7 @@ pub fn handle_shortcut_event(
                 binding_id,
                 hotkey_string,
                 is_pressed,
-                settings.shortcut_activation,
+                activation_for(binding_id, settings.shortcut_activation),
                 std::time::Duration::from_millis(settings.hold_threshold_ms),
             );
         } else {

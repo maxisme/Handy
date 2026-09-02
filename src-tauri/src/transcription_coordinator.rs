@@ -72,6 +72,11 @@ enum Remembered {
 
 /// Bookkeeping for the key press that started the current recording.
 struct Hold {
+    /// The binding whose press actually started the audio capture. The audio
+    /// manager only stops a recording for the binding that started it, so a
+    /// session handed over to another binding (see `on_input`) still stops
+    /// under this id.
+    started_by: String,
     pressed_at: Instant,
     /// Recording outlives the key: the next press stops it, releases are
     /// ignored. Always set for toggle; set for hold-or-toggle once a release
@@ -219,7 +224,10 @@ fn classify_ptt_event(
 struct CoordinatorState {
     stage: Stage,
     hold: Option<Hold>,
-    last_press: Option<Instant>,
+    /// The last accepted key-down, per binding: debouncing is about one key
+    /// repeating, so a different binding's press must never be swallowed —
+    /// a chord like Fn then Fn+Space lands two presses milliseconds apart.
+    last_press: Option<(String, Instant)>,
     pending_release: Option<PendingRelease>,
     pending_press: Option<PendingPress>,
 }
@@ -290,12 +298,13 @@ impl CoordinatorState {
         if input.is_pressed && !input.external {
             if self
                 .last_press
-                .is_some_and(|t| now.duration_since(t) < DEBOUNCE)
+                .as_ref()
+                .is_some_and(|(id, t)| *id == input.binding_id && now.duration_since(*t) < DEBOUNCE)
             {
                 debug!("Debounced press for '{}'", input.binding_id);
                 return None;
             }
-            self.last_press = Some(now);
+            self.last_press = Some((input.binding_id.clone(), now));
         }
 
         // A busy pipeline can't accept lifecycle changes now: classify the
@@ -364,6 +373,24 @@ impl CoordinatorState {
                     // The key is still held (its release will end this
                     // recording), so a repeated press means nothing.
                     debug!("Ignoring press for '{}': key is held", input.binding_id);
+                }
+                Stage::Recording(_) if !self.is_locked() => {
+                    // Another binding's key is holding an unlocked recording
+                    // and a second transcribe chord arrived — e.g. Space
+                    // joining a held Fn. The new binding takes the session
+                    // over under its own mode: toggle locks it on right away,
+                    // the hold modes measure their own press from here.
+                    let locked = input.mode == ShortcutActivation::Toggle;
+                    debug!(
+                        "Press for '{}' takes over the recording held by another binding (locked: {locked})",
+                        input.binding_id
+                    );
+                    self.pending_release = None;
+                    self.stage = Stage::Recording(input.binding_id);
+                    if let Some(hold) = &mut self.hold {
+                        hold.pressed_at = now;
+                        hold.locked = locked;
+                    }
                 }
                 _ => debug!(
                     "Ignoring press for '{}': another binding is recording",
@@ -491,7 +518,12 @@ impl CoordinatorState {
     /// Reconcile the optimistic `Stage::Recording` after the executor reports
     /// whether recording actually began (microphone access can be denied).
     fn on_start_result(&mut self, binding_id: &str, started: bool) {
-        if !started && matches!(&self.stage, Stage::Recording(id) if id == binding_id) {
+        let started_here = matches!(&self.stage, Stage::Recording(_))
+            && self
+                .hold
+                .as_ref()
+                .is_some_and(|h| h.started_by == binding_id);
+        if !started && started_here {
             self.stage = Stage::Idle;
             self.hold = None;
         }
@@ -508,18 +540,24 @@ impl CoordinatorState {
         locked: bool,
     ) -> Effect {
         self.stage = Stage::Recording(binding_id.clone());
-        self.hold = Some(Hold { pressed_at, locked });
+        self.hold = Some(Hold {
+            started_by: binding_id.clone(),
+            pressed_at,
+            locked,
+        });
         Effect::Start {
             binding_id,
             hotkey_string,
         }
     }
 
+    /// Stops under the binding that started the capture, not the one whose
+    /// press ends it — the two differ after a takeover.
     fn begin_processing(&mut self, binding_id: String, hotkey_string: String) -> Effect {
         self.stage = Stage::Processing;
-        self.hold = None;
+        let started_by = self.hold.take().map(|h| h.started_by);
         Effect::Stop {
-            binding_id,
+            binding_id: started_by.unwrap_or(binding_id),
             hotkey_string,
         }
     }
@@ -534,8 +572,24 @@ pub struct TranscriptionCoordinator {
     tx: Sender<Command>,
 }
 
+/// The transcribe binding that records only while held, whatever
+/// `shortcut_activation` says. Pairs with a toggle-mode `transcribe` on a
+/// superset chord (Fn and Fn+Space): the hold starts recording, and Space
+/// joining the chord hands the session to the toggle binding.
+pub const HOLD_BINDING: &str = "transcribe_hold";
+
 pub fn is_transcribe_binding(id: &str) -> bool {
-    id == "transcribe" || id == "transcribe_with_post_process"
+    id == "transcribe" || id == "transcribe_with_post_process" || id == HOLD_BINDING
+}
+
+/// The activation mode a transcribe binding runs under: the configured
+/// setting for every binding except the dedicated hold binding.
+pub fn activation_for(binding_id: &str, configured: ShortcutActivation) -> ShortcutActivation {
+    if binding_id == HOLD_BINDING {
+        ShortcutActivation::PushToTalk
+    } else {
+        configured
+    }
 }
 
 impl TranscriptionCoordinator {
@@ -1613,5 +1667,199 @@ mod tests {
             "held 400ms since the real key-down: must stop, not lock"
         );
         assert_eq!(state.stage, Stage::Processing);
+    }
+
+    // ---------------------------------------------------------------------
+    // The dedicated hold binding on a chord that is a prefix of the toggle
+    // binding's (Fn, then Fn+Space): the hold starts recording and the
+    // superset chord takes the session over.
+    // ---------------------------------------------------------------------
+
+    const HOLD: &str = HOLD_BINDING;
+
+    fn input_for(binding: &str, mode: ShortcutActivation, is_pressed: bool) -> InputEvent {
+        InputEvent {
+            binding_id: binding.to_string(),
+            hotkey_string: binding.to_string(),
+            is_pressed,
+            mode,
+            hold_threshold: HOLD_THRESHOLD,
+            external: false,
+        }
+    }
+
+    #[test]
+    fn hold_binding_is_always_push_to_talk() {
+        use ShortcutActivation::*;
+        for configured in [Toggle, PushToTalk, HoldOrToggle] {
+            assert_eq!(activation_for(HOLD, configured), PushToTalk);
+            assert_eq!(activation_for(BINDING, configured), configured);
+            assert_eq!(activation_for(OTHER_BINDING, configured), configured);
+        }
+        assert!(is_transcribe_binding(HOLD));
+    }
+
+    /// Fn held (hold binding), then Space joins the chord (toggle binding):
+    /// the recording locks on, both releases are ignored, and the next
+    /// Fn+Space press stops it — under the binding that started the capture.
+    #[test]
+    fn space_joining_a_held_fn_hands_the_session_to_the_toggle_binding() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        assert!(matches!(
+            state.on_input(input_for(HOLD, ShortcutActivation::PushToTalk, true), t0),
+            Some(Effect::Start { ref binding_id, .. }) if binding_id == HOLD
+        ));
+        assert!(state
+            .on_input(
+                input_for(BINDING, ShortcutActivation::Toggle, true),
+                t0 + ms(120)
+            )
+            .is_none());
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+        assert!(state.is_locked(), "a toggle takeover locks the session on");
+
+        // Space up, then Fn up: neither ends a locked session.
+        assert!(state
+            .on_input(
+                input_for(BINDING, ShortcutActivation::Toggle, false),
+                t0 + ms(200)
+            )
+            .is_none());
+        assert!(state
+            .on_input(
+                input_for(HOLD, ShortcutActivation::PushToTalk, false),
+                t0 + ms(260)
+            )
+            .is_none());
+        assert!(state.on_grace_expired().is_none());
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+
+        // Seconds later Fn+Space again: Fn alone is ignored while another
+        // binding owns a locked session, Space stops it.
+        assert!(state
+            .on_input(
+                input_for(HOLD, ShortcutActivation::PushToTalk, true),
+                t0 + ms(5000)
+            )
+            .is_none());
+        assert!(matches!(
+            state.on_input(input_for(BINDING, ShortcutActivation::Toggle, true), t0 + ms(5060)),
+            Some(Effect::Stop { ref binding_id, .. }) if binding_id == HOLD
+        ));
+        assert_eq!(state.stage, Stage::Processing);
+    }
+
+    /// Under hold-or-toggle the takeover is unlocked and measured from its
+    /// own press, so a quick Space tap locks and a long Space hold stops.
+    #[test]
+    fn takeover_under_hold_or_toggle_measures_its_own_press() {
+        let mode = ShortcutActivation::HoldOrToggle;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        assert!(matches!(
+            state.on_input(input_for(HOLD, ShortcutActivation::PushToTalk, true), t0),
+            Some(Effect::Start { .. })
+        ));
+        assert!(state
+            .on_input(input_for(BINDING, mode, true), t0 + ms(1000))
+            .is_none());
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+        assert!(!state.is_locked());
+
+        // A 100ms tap of Space, although Fn has been down for over a second.
+        assert!(state
+            .on_input(input_for(BINDING, mode, false), t0 + ms(1100))
+            .is_none());
+        assert!(
+            state.on_grace_expired().is_none(),
+            "a tap must lock, not stop"
+        );
+        assert!(state.is_locked());
+
+        assert!(state
+            .on_input(
+                input_for(HOLD, ShortcutActivation::PushToTalk, false),
+                t0 + ms(1200)
+            )
+            .is_none());
+        assert!(matches!(
+            state.on_input(input_for(BINDING, mode, true), t0 + ms(3000)),
+            Some(Effect::Stop { ref binding_id, .. }) if binding_id == HOLD
+        ));
+    }
+
+    /// A press of the hold binding while the toggle binding owns a locked
+    /// session changes nothing: only the toggle binding can end it.
+    #[test]
+    fn hold_binding_does_not_take_over_a_locked_session() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        assert!(matches!(
+            state.on_input(input_for(BINDING, ShortcutActivation::Toggle, true), t0),
+            Some(Effect::Start { .. })
+        ));
+        assert!(state
+            .on_input(
+                input_for(HOLD, ShortcutActivation::PushToTalk, true),
+                t0 + ms(500)
+            )
+            .is_none());
+        assert!(state
+            .on_input(
+                input_for(HOLD, ShortcutActivation::PushToTalk, false),
+                t0 + ms(900)
+            )
+            .is_none());
+        assert!(state.on_grace_expired().is_none());
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+
+        assert!(matches!(
+            state.on_input(input_for(BINDING, ShortcutActivation::Toggle, true), t0 + ms(2000)),
+            Some(Effect::Stop { ref binding_id, .. }) if binding_id == BINDING
+        ));
+    }
+
+    /// The two presses of a chord land milliseconds apart; the debounce
+    /// only guards against one binding's key repeating.
+    #[test]
+    fn chord_presses_inside_the_debounce_window_are_both_accepted() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        assert!(matches!(
+            state.on_input(input_for(HOLD, ShortcutActivation::PushToTalk, true), t0),
+            Some(Effect::Start { .. })
+        ));
+        assert!(state
+            .on_input(
+                input_for(BINDING, ShortcutActivation::Toggle, true),
+                t0 + ms(8)
+            )
+            .is_none());
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+        assert!(state.is_locked());
+    }
+
+    /// A failed start reported for the binding that pressed first still
+    /// rolls the session back after a takeover.
+    #[test]
+    fn failed_start_rolls_back_after_takeover() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        state.on_input(input_for(HOLD, ShortcutActivation::PushToTalk, true), t0);
+        state.on_input(
+            input_for(BINDING, ShortcutActivation::Toggle, true),
+            t0 + ms(100),
+        );
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+
+        state.on_start_result(HOLD, false);
+        assert_eq!(state.stage, Stage::Idle);
+        assert!(state.hold.is_none());
     }
 }
