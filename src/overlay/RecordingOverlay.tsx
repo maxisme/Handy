@@ -290,7 +290,8 @@ const RecordingOverlay: React.FC = () => {
 
   // ---- Copy prompt: the transcript finished but nothing editable was focused
   // (or the paste failed), so offer it for the clipboard instead. Same compact
-  // pill as the working state: icon (left) | button (center) | dismiss (right).
+  // pill as the working state: empty (left) | button (center) | dismiss (right);
+  // the empty left cell keeps the button centered.
   if (state === "copy-prompt") {
     const handleCopy = async () => {
       if (copied) return;
@@ -304,30 +305,7 @@ const RecordingOverlay: React.FC = () => {
       >
         <div className="scard compact ccopy">
           <div className="sbase">
-            <div className="sbase-l">
-              <svg
-                className="scopy-icon"
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-              >
-                <rect
-                  x="5.5"
-                  y="5.5"
-                  width="8"
-                  height="8"
-                  rx="1.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  fill="none"
-                />
-                <path
-                  d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  fill="none"
-                />
-              </svg>
-            </div>
+            <div className="sbase-l" />
             <button
               className={`scopy ${copied ? "done" : ""}`}
               onClick={handleCopy}

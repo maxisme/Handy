@@ -444,13 +444,7 @@
   transform: scale(0.95);
 }
 
-/* copy prompt — clipboard icon + text button, in the working pill's footprint */
-.scopy-icon {
-  width: 14px;
-  height: 14px;
-  display: block;
-  color: var(--s-accent);
-}
+/* copy prompt — text button in the working pill's footprint */
 .scopy {
   font: inherit;
   font-size: 12px;
