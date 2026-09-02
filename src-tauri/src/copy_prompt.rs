@@ -30,17 +30,15 @@ pub struct LastTranscript(Mutex<Option<String>>);
 ///
 /// `target_is_text_input` is the focus check taken just before pasting
 /// (`None` when the platform could not tell). A failed paste always earns the
-/// prompt: the text went nowhere regardless of focus.
+/// prompt: the text went nowhere regardless of focus. The prompt is shown
+/// even when clipboard handling already copies the transcript: it is the
+/// only visible sign that nothing was pasted, and copying again is harmless.
 pub fn should_offer_copy(
     settings: &AppSettings,
     target_is_text_input: Option<bool>,
     paste_failed: bool,
 ) -> bool {
     if !settings.copy_prompt_enabled {
-        return false;
-    }
-    // The transcript is already on the clipboard.
-    if settings.clipboard_handling == ClipboardHandling::CopyToClipboard {
         return false;
     }
     // These methods never target the focused element.
@@ -133,10 +131,10 @@ mod tests {
     }
 
     #[test]
-    fn skips_when_transcript_is_already_copied_to_clipboard() {
+    fn offers_even_when_clipboard_handling_already_copies() {
         let mut settings = settings();
         settings.clipboard_handling = ClipboardHandling::CopyToClipboard;
-        assert!(!should_offer_copy(&settings, Some(false), false));
+        assert!(should_offer_copy(&settings, Some(false), false));
     }
 
     #[test]
