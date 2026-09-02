@@ -556,6 +556,19 @@ async copyLastTranscript() : Promise<Result<null, string>> {
 async dismissCopyPrompt() : Promise<void> {
     await TAURI_INVOKE("dismiss_copy_prompt");
 },
+/**
+ * Overlay pin button: keep the live recording going after the shortcut key
+ * is released. Ends on the next press of the shortcut or `finish_recording`.
+ */
+async pinRecording() : Promise<void> {
+    await TAURI_INVOKE("pin_recording");
+},
+/**
+ * Overlay finish button: stop the live recording and transcribe it.
+ */
+async finishRecording() : Promise<void> {
+    await TAURI_INVOKE("finish_recording");
+},
 async isPortable() : Promise<boolean> {
     return await TAURI_INVOKE("is_portable");
 },

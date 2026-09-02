@@ -701,7 +701,9 @@
     "processing": "प्रोसेस हो रहा है...",
     "copyLastTranscript": "अंतिम ट्रांसक्रिप्ट कॉपी करें",
     "copied": "कॉपी हो गया",
-    "dismiss": "बंद करें"
+    "dismiss": "बंद करें",
+    "pin": "रिकॉर्डिंग जारी रखें",
+    "finish": "समाप्त"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} शायद 1 शॉर्टकट को ब्लॉक कर रहा है",

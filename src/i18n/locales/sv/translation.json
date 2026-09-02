@@ -698,7 +698,9 @@
     "processing": "Bearbetar...",
     "copyLastTranscript": "Kopiera senaste transkription",
     "copied": "Kopierat",
-    "dismiss": "Stäng"
+    "dismiss": "Stäng",
+    "pin": "Fortsätt spela in",
+    "finish": "Klar"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"

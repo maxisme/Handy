@@ -698,7 +698,9 @@
     "processing": "Zpracovávám...",
     "copyLastTranscript": "Kopírovat poslední přepis",
     "copied": "Zkopírováno",
-    "dismiss": "Zavřít"
+    "dismiss": "Zavřít",
+    "pin": "Pokračovat v nahrávání",
+    "finish": "Dokončit"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

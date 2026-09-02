@@ -698,7 +698,9 @@
     "processing": "처리 중...",
     "copyLastTranscript": "마지막 전사 복사",
     "copied": "복사됨",
-    "dismiss": "닫기"
+    "dismiss": "닫기",
+    "pin": "계속 녹음",
+    "finish": "완료"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

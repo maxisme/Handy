@@ -698,7 +698,9 @@
     "processing": "İşleniyor...",
     "copyLastTranscript": "Son transkripti kopyala",
     "copied": "Kopyalandı",
-    "dismiss": "Kapat"
+    "dismiss": "Kapat",
+    "pin": "Kayda devam et",
+    "finish": "Bitir"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

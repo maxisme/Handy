@@ -698,7 +698,9 @@
     "processing": "מעבד...",
     "copyLastTranscript": "העתק את התמלול האחרון",
     "copied": "הועתק",
-    "dismiss": "סגור"
+    "dismiss": "סגור",
+    "pin": "המשך הקלטה",
+    "finish": "סיום"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

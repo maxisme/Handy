@@ -701,7 +701,9 @@
     "processing": "Behandler...",
     "copyLastTranscript": "Kopiér seneste transskription",
     "copied": "Kopieret",
-    "dismiss": "Luk"
+    "dismiss": "Luk",
+    "pin": "Fortsæt optagelse",
+    "finish": "Færdig"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",

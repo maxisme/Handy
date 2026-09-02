@@ -698,7 +698,9 @@
     "processing": "Đang xử lý...",
     "copyLastTranscript": "Sao chép bản chép lời gần nhất",
     "copied": "Đã sao chép",
-    "dismiss": "Đóng"
+    "dismiss": "Đóng",
+    "pin": "Tiếp tục ghi âm",
+    "finish": "Xong"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

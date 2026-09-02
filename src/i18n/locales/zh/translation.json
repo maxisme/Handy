@@ -698,7 +698,9 @@
     "processing": "处理中...",
     "copyLastTranscript": "复制最近的转录",
     "copied": "已复制",
-    "dismiss": "关闭"
+    "dismiss": "关闭",
+    "pin": "继续录音",
+    "finish": "完成"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

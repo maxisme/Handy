@@ -698,7 +698,9 @@
     "processing": "処理中…",
     "copyLastTranscript": "最後の文字起こしをコピー",
     "copied": "コピーしました",
-    "dismiss": "閉じる"
+    "dismiss": "閉じる",
+    "pin": "録音を続ける",
+    "finish": "完了"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

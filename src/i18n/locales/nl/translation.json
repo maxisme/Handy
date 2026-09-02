@@ -701,7 +701,9 @@
     "processing": "Verwerken...",
     "copyLastTranscript": "Laatste transcriptie kopiëren",
     "copied": "Gekopieerd",
-    "dismiss": "Sluiten"
+    "dismiss": "Sluiten",
+    "pin": "Blijven opnemen",
+    "finish": "Klaar"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",

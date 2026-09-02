@@ -717,6 +717,8 @@ pub fn run(cli_args: CliArgs) {
             commands::cancel_operation,
             commands::copy_last_transcript,
             commands::dismiss_copy_prompt,
+            commands::pin_recording,
+            commands::finish_recording,
             commands::is_portable,
             commands::is_update_checks_locked,
             commands::get_app_dir_path,

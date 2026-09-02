@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::clipboard::write_text_to_clipboard;
 use crate::overlay;
-use crate::settings::{AppSettings, ClipboardHandling, PasteMethod};
+use crate::settings::{AppSettings, PasteMethod};
 
 /// How long the prompt stays on screen before hiding on its own.
 const PROMPT_TIMEOUT: Duration = Duration::from_secs(8);
@@ -96,7 +96,7 @@ pub fn dismiss(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::settings::get_default_settings;
+    use crate::settings::{get_default_settings, ClipboardHandling};
 
     fn settings() -> AppSettings {
         let mut settings = get_default_settings();

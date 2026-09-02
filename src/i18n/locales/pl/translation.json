@@ -698,7 +698,9 @@
     "processing": "Przetwarzanie...",
     "copyLastTranscript": "Kopiuj ostatnią transkrypcję",
     "copied": "Skopiowano",
-    "dismiss": "Zamknij"
+    "dismiss": "Zamknij",
+    "pin": "Kontynuuj nagrywanie",
+    "finish": "Zakończ"
   },
   "whatsNew": {
     "title": "Nowości w Handy v{{version}}"

@@ -698,7 +698,9 @@
     "processing": "Verarbeite...",
     "copyLastTranscript": "Letztes Transkript kopieren",
     "copied": "Kopiert",
-    "dismiss": "Schließen"
+    "dismiss": "Schließen",
+    "pin": "Aufnahme fortsetzen",
+    "finish": "Fertig"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"

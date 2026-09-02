@@ -698,7 +698,9 @@
     "processing": "...جاري المعالجة",
     "copyLastTranscript": "نسخ آخر تفريغ",
     "copied": "تم النسخ",
-    "dismiss": "إغلاق"
+    "dismiss": "إغلاق",
+    "pin": "متابعة التسجيل",
+    "finish": "إنهاء"
   },
   "whatsNew": {
     "title": "الجديد في Handy v{{version}}"

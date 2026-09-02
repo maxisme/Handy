@@ -698,7 +698,9 @@
     "processing": "Обработка...",
     "copyLastTranscript": "Скопировать последнюю расшифровку",
     "copied": "Скопировано",
-    "dismiss": "Закрыть"
+    "dismiss": "Закрыть",
+    "pin": "Продолжить запись",
+    "finish": "Готово"
   },
   "whatsNew": {
     "title": "Новое в Handy v{{version}}"

@@ -27,7 +27,7 @@
 //! polled from a dedicated recording thread. Events are emitted to the frontend
 //! via Tauri's event system.
 
-use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, KeyboardListener};
+use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, Key, KeyboardListener};
 use log::{debug, error, info};
 use serde::Serialize;
 use specta::Type;
@@ -502,6 +502,63 @@ pub fn unregister_cancel_shortcut(app: &AppHandle) {
     }
 }
 
+/// The pin hotkey for a held transcribe hotkey: its modifiers plus Space, so
+/// Space pressed while the shortcut is still down fires it. `None` when the
+/// hotkey does not parse or already ends in Space.
+pub fn pin_hotkey_for(held_hotkey: &str) -> Option<String> {
+    let held: Hotkey = held_hotkey.parse().ok()?;
+    if held.key == Some(Key::Space) {
+        return None;
+    }
+    Hotkey::new(held.modifiers, Key::Space)
+        .ok()
+        .map(|hotkey| hotkey.to_lowercase_string())
+}
+
+/// Register the pin shortcut (called when an unlocked hold begins)
+pub fn register_pin_shortcut(app: &AppHandle, held_hotkey: &str) {
+    // Disabled on Linux alongside the cancel shortcut: dynamic registration is unstable there
+    #[cfg(target_os = "linux")]
+    {
+        let _ = (app, held_hotkey);
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let Some(hotkey) = pin_hotkey_for(held_hotkey) else {
+            return;
+        };
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Some(state) = app_clone.try_state::<HandyKeysState>() {
+                if let Err(e) = state.register(&super::pin_binding(hotkey)) {
+                    error!("Failed to register pin shortcut: {}", e);
+                }
+            }
+        });
+    }
+}
+
+/// Unregister the pin shortcut (called once the recording is locked or ends)
+pub fn unregister_pin_shortcut(app: &AppHandle) {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = app;
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Some(state) = app_clone.try_state::<HandyKeysState>() {
+                let _ = state.unregister(&super::pin_binding(String::new()));
+            }
+        });
+    }
+}
+
 /// Register a shortcut
 pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), String> {
     let state = app
@@ -571,4 +628,45 @@ pub fn stop_handy_keys_recording(app: AppHandle) -> Result<(), String> {
     let result = state.stop_recording();
     super::resume_all_shortcuts(&app);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pin_hotkey_for;
+    use handy_keys::{Hotkey, Key, Modifiers};
+
+    fn parsed(hotkey: &str) -> Hotkey {
+        hotkey.parse().expect("pin hotkey round-trips")
+    }
+
+    #[test]
+    fn pin_hotkey_for_a_modifier_only_hold_is_that_modifier_plus_space() {
+        let pin = parsed(&pin_hotkey_for("fn").expect("fn pins"));
+        assert_eq!(pin.modifiers, Modifiers::FN);
+        assert_eq!(pin.key, Some(Key::Space));
+    }
+
+    #[test]
+    fn pin_hotkey_keeps_every_held_modifier() {
+        let pin = parsed(&pin_hotkey_for("cmd+shift+k").expect("parses"));
+        assert_eq!(pin.modifiers, Modifiers::CMD | Modifiers::SHIFT);
+        assert_eq!(pin.key, Some(Key::Space));
+    }
+
+    #[test]
+    fn pin_hotkey_is_bare_space_for_an_unmodified_key() {
+        let pin = parsed(&pin_hotkey_for("f5").expect("parses"));
+        assert!(pin.modifiers.is_empty());
+        assert_eq!(pin.key, Some(Key::Space));
+    }
+
+    #[test]
+    fn no_pin_hotkey_when_the_held_hotkey_ends_in_space() {
+        assert_eq!(pin_hotkey_for("option+space"), None);
+    }
+
+    #[test]
+    fn no_pin_hotkey_for_an_unparseable_hotkey() {
+        assert_eq!(pin_hotkey_for(""), None);
+    }
 }

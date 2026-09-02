@@ -571,6 +571,21 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     }
 }
 
+/// Tell the recording overlay whether the live recording is pinned — it
+/// outlives the shortcut key and ends on the next press or the overlay's
+/// finish button. Queued onto the main thread behind show-overlay for the same
+/// recording, so the frontend never sees the pin state before the show.
+pub fn emit_recording_pinned(app_handle: &AppHandle, pinned: bool) {
+    if !OVERLAY_ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
+
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "recording-pinned", pinned);
+    });
+}
+
 /// Notify the visible recording overlay that the input stream has delivered its
 /// first sample chunk. Audio feedback uses the same backend readiness signal,
 /// but this targeted event is skipped when overlays are disabled.
