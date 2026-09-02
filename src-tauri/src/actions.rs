@@ -2,6 +2,8 @@
 use crate::apple_intelligence;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
+use crate::copy_prompt;
+use crate::focus;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
@@ -822,17 +824,39 @@ impl ShortcutAction for TranscribeAction {
                                         return;
                                     }
 
-                                    match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
-                                        Err(e) => {
-                                            error!("Failed to paste transcription: {}", e);
-                                            let _ = ah_clone.emit("paste-error", ());
-                                        }
+                                    // Sampled before the paste: the chord never moves
+                                    // focus, and this is the last moment the target the
+                                    // user actually had is observable.
+                                    let target_is_text_input =
+                                        focus::focused_element_is_text_input();
+                                    let transcript = final_text.clone();
+                                    let paste_failed =
+                                        match utils::paste(final_text, ah_clone.clone()) {
+                                            Ok(()) => {
+                                                debug!(
+                                                    "Text pasted successfully in {:?}",
+                                                    paste_time.elapsed()
+                                                );
+                                                false
+                                            }
+                                            Err(e) => {
+                                                error!("Failed to paste transcription: {}", e);
+                                                let _ = ah_clone.emit("paste-error", ());
+                                                true
+                                            }
+                                        };
+                                    let settings = get_settings(&ah_clone);
+                                    if copy_prompt::should_offer_copy(
+                                        &settings,
+                                        target_is_text_input,
+                                        paste_failed,
+                                    ) {
+                                        // Replaces the hide: the overlay stays up showing
+                                        // the prompt and hides itself when it expires.
+                                        copy_prompt::offer(&ah_clone, transcript);
+                                    } else {
+                                        utils::hide_recording_overlay(&ah_clone);
                                     }
-                                    utils::hide_recording_overlay(&ah_clone);
                                     set_tray_state(&ah_clone, TrayIconState::Idle);
                                 })
                                 .unwrap_or_else(|e| {

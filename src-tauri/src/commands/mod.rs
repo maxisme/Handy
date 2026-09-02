@@ -17,6 +17,21 @@ pub fn cancel_operation(app: AppHandle) {
     cancel_current_operation(&app);
 }
 
+/// Copies the transcript offered by the overlay's "copy last transcript"
+/// prompt to the clipboard.
+#[tauri::command]
+#[specta::specta]
+pub fn copy_last_transcript(app: AppHandle) -> Result<(), String> {
+    crate::copy_prompt::copy_last_transcript(&app)
+}
+
+/// Closes the "copy last transcript" prompt without copying.
+#[tauri::command]
+#[specta::specta]
+pub fn dismiss_copy_prompt(app: AppHandle) {
+    crate::copy_prompt::dismiss(&app);
+}
+
 /// Overlay pin button: keep the live recording going after the shortcut key
 /// is released. Ends on the next press of the shortcut or `finish_recording`.
 #[tauri::command]

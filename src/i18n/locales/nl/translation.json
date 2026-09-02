@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Instellingen...",
     "checkUpdates": "Controleren op updates...",
-    "copyLastTranscript": "Laatste transcriptie kopiëren",
+    "copyLastTranscript": "Transcriptie kopiëren",
     "unloadModel": "Model ontladen",
     "model": "Model",
     "quit": "Afsluiten",
@@ -345,6 +345,10 @@
           "dontModify": "Klembord niet aanpassen",
           "copyToClipboard": "Kopiëren naar klembord"
         }
+      },
+      "copyPrompt": {
+        "label": "Kopieer-pop-up",
+        "description": "Toont een kleine pop-up om de transcriptie te kopiëren wanneer deze klaar is terwijl er geen tekstveld actief is (of het plakken mislukt)."
       },
       "autoSubmit": {
         "title": "Automatisch verzenden",
@@ -695,6 +699,9 @@
   "overlay": {
     "transcribing": "Transcriberen...",
     "processing": "Verwerken...",
+    "copyLastTranscript": "Laatste transcriptie kopiëren",
+    "copied": "Gekopieerd",
+    "dismiss": "Sluiten",
     "pin": "Blijven opnemen",
     "finish": "Klaar"
   },

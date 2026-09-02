@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Inställningar...",
     "checkUpdates": "Sök efter uppdateringar...",
-    "copyLastTranscript": "Kopiera senaste transkriptionen",
+    "copyLastTranscript": "Kopiera transkription",
     "unloadModel": "Avlasta modell",
     "model": "Modell",
     "quit": "Avsluta",
@@ -345,6 +345,10 @@
           "dontModify": "Ändra inte urklipp",
           "copyToClipboard": "Kopiera till urklipp"
         }
+      },
+      "copyPrompt": {
+        "label": "Kopieringspopup",
+        "description": "Visar en liten popup för att kopiera transkriptionen när den är klar medan inget textfält är i fokus (eller om inklistringen misslyckas)."
       },
       "autoSubmit": {
         "title": "Skicka automatiskt",
@@ -692,6 +696,9 @@
   "overlay": {
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar...",
+    "copyLastTranscript": "Kopiera senaste transkription",
+    "copied": "Kopierat",
+    "dismiss": "Stäng",
     "pin": "Fortsätt spela in",
     "finish": "Klar"
   },

@@ -56,6 +56,7 @@
   --ov-work-w: 216px; /* working pill (transcribing / polishing) -- wide enough to
                          center longer labels; shared by Live (collapsed) + minimal */
   --ov-open-w: 392px; /* Live panel, expanded */
+  --ov-copy-max-w: 246px; /* copy prompt cap; OVERLAY_WIDTH (256) minus border and slack */
   --ov-base-h: 40px; /* control-row height (.sbase) */
   --ov-cap-max-h: 64px; /* max height of the scrolling live-text region */
 }
@@ -215,6 +216,14 @@
 }
 .scard.compact.cworking {
   width: var(--ov-work-w);
+}
+/* Copy prompt: content-sized so longer translations fit, capped just inside
+   the native window width (OVERLAY_WIDTH in overlay.rs) — a label beyond the
+   cap still ellipsizes rather than clipping. */
+.scard.compact.ccopy {
+  width: fit-content;
+  min-width: var(--ov-work-w);
+  max-width: var(--ov-copy-max-w);
 }
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */
@@ -420,6 +429,37 @@
 }
 .sx.sdone:hover {
   color: var(--color-text);
+}
+
+/* copy prompt — text button in the working pill's footprint */
+.scopy {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  padding: 3px 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.scopy:hover {
+  background: var(--s-accent-soft);
+}
+.scopy.done,
+.scopy:disabled {
+  color: var(--s-muted);
+  background: transparent;
+  cursor: default;
 }
 
 /* working state (transcribing / polishing) — spinner + label */

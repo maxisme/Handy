@@ -2,7 +2,7 @@
   "tray": {
     "settings": "...الإعدادات",
     "checkUpdates": "...التحقق من وجود تحديثات",
-    "copyLastTranscript": "نسخ آخر نص تم تفريغه",
+    "copyLastTranscript": "نسخ التفريغ",
     "unloadModel": "تفريغ النموذج",
     "model": "النموذج",
     "quit": "إنهاء",
@@ -322,6 +322,10 @@
           "dontModify": "عدم تعديل الحافظة",
           "copyToClipboard": "نسخ إلى الحافظة"
         }
+      },
+      "copyPrompt": {
+        "label": "نافذة النسخ المنبثقة",
+        "description": "عرض نافذة منبثقة صغيرة لنسخ التفريغ عند اكتماله بينما لا يوجد حقل نصي نشط (أو عند فشل اللصق)."
       },
       "autoSubmit": {
         "title": "إرسال تلقائي",
@@ -692,6 +696,9 @@
   "overlay": {
     "transcribing": "...جاري التفريغ",
     "processing": "...جاري المعالجة",
+    "copyLastTranscript": "نسخ آخر تفريغ",
+    "copied": "تم النسخ",
+    "dismiss": "إغلاق",
     "pin": "متابعة التسجيل",
     "finish": "إنهاء"
   },

@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Ustawienia...",
     "checkUpdates": "Sprawdź aktualizacje...",
-    "copyLastTranscript": "Kopiuj ostatnią transkrypcję",
+    "copyLastTranscript": "Kopiuj transkrypcję",
     "unloadModel": "Zwolnij model",
     "model": "Model",
     "quit": "Zamknij",
@@ -345,6 +345,10 @@
           "dontModify": "Nie modyfikuj schowka",
           "copyToClipboard": "Kopiuj do schowka"
         }
+      },
+      "copyPrompt": {
+        "label": "Okienko kopiowania",
+        "description": "Pokazuje małe okienko z opcją skopiowania transkrypcji, gdy kończy się ona bez aktywnego pola tekstowego (lub gdy wklejanie się nie powiedzie)."
       },
       "autoSubmit": {
         "title": "Automatyczne wysyłanie",
@@ -692,6 +696,9 @@
   "overlay": {
     "transcribing": "Transkrypcja...",
     "processing": "Przetwarzanie...",
+    "copyLastTranscript": "Kopiuj ostatnią transkrypcję",
+    "copied": "Skopiowano",
+    "dismiss": "Zamknij",
     "pin": "Kontynuuj nagrywanie",
     "finish": "Zakończ"
   },

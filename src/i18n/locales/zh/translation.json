@@ -346,6 +346,10 @@
           "copyToClipboard": "复制到剪贴板"
         }
       },
+      "copyPrompt": {
+        "label": "复制弹窗",
+        "description": "当转录完成时没有聚焦的文本框（或粘贴失败），显示一个小弹窗以便复制转录内容。"
+      },
       "autoSubmit": {
         "title": "自动提交",
         "description": "在文本插入后自动发送所选的按键组合。macOS 上使用 Cmd+Enter，Windows/Linux 上使用 Super+Enter。",
@@ -692,6 +696,9 @@
   "overlay": {
     "transcribing": "正在转录...",
     "processing": "处理中...",
+    "copyLastTranscript": "复制最近的转录",
+    "copied": "已复制",
+    "dismiss": "关闭",
     "pin": "继续录音",
     "finish": "完成"
   },

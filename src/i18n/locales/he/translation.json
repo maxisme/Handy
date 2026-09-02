@@ -2,7 +2,7 @@
   "tray": {
     "settings": "הגדרות...",
     "checkUpdates": "בדוק עדכונים...",
-    "copyLastTranscript": "העתק את התמלול האחרון",
+    "copyLastTranscript": "העתק את התמלול",
     "unloadModel": "פרוק מודל",
     "model": "מודל",
     "quit": "יציאה",
@@ -345,6 +345,10 @@
           "dontModify": "אל תשנה את הלוח",
           "copyToClipboard": "העתק ללוח"
         }
+      },
+      "copyPrompt": {
+        "label": "חלון קופץ להעתקה",
+        "description": "מציג חלון קופץ קטן להעתקת התמלול כשהוא מסתיים בזמן שאף שדה טקסט אינו פעיל (או כשההדבקה נכשלת)."
       },
       "autoSubmit": {
         "title": "שליחה אוטומטית",
@@ -692,6 +696,9 @@
   "overlay": {
     "transcribing": "מתמלל...",
     "processing": "מעבד...",
+    "copyLastTranscript": "העתק את התמלול האחרון",
+    "copied": "הועתק",
+    "dismiss": "סגור",
     "pin": "המשך הקלטה",
     "finish": "סיום"
   },

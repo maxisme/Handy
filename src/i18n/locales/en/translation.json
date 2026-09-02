@@ -346,6 +346,10 @@
           "copyToClipboard": "Copy to Clipboard"
         }
       },
+      "copyPrompt": {
+        "label": "Copy Prompt",
+        "description": "Show a small popup offering to copy the transcript when it finishes while no text field is focused (or the paste fails)."
+      },
       "autoSubmit": {
         "title": "Auto Submit",
         "description": "Automatically send the selected key combination after text insertion. Cmd+Enter applies on macOS, while Windows/Linux use Super+Enter.",
@@ -695,6 +699,9 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing...",
+    "copyLastTranscript": "Copy last transcript",
+    "copied": "Copied",
+    "dismiss": "Dismiss",
     "pin": "Keep recording",
     "finish": "Finish"
   },

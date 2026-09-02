@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Configuración...",
     "checkUpdates": "Buscar actualizaciones...",
-    "copyLastTranscript": "Copiar la última transcripción",
+    "copyLastTranscript": "Copiar transcripción",
     "unloadModel": "Descargar modelo",
     "model": "Modelo",
     "quit": "Salir",
@@ -345,6 +345,10 @@
           "dontModify": "No modificar portapapeles",
           "copyToClipboard": "Copiar al portapapeles"
         }
+      },
+      "copyPrompt": {
+        "label": "Ventana de copia",
+        "description": "Muestra una pequeña ventana emergente para copiar la transcripción cuando termina sin que haya un campo de texto enfocado (o si falla el pegado)."
       },
       "autoSubmit": {
         "title": "Envío automático",
@@ -692,6 +696,9 @@
   "overlay": {
     "transcribing": "Transcribiendo...",
     "processing": "Procesando...",
+    "copyLastTranscript": "Copiar última transcripción",
+    "copied": "Copiado",
+    "dismiss": "Cerrar",
     "pin": "Seguir grabando",
     "finish": "Finalizar"
   },
