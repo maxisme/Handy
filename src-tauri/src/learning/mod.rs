@@ -15,7 +15,7 @@ pub mod toast;
 
 use log::debug;
 
-pub use check::{availability, Availability, VocabularyCheck};
+pub use check::{availability, Availability, CorrectionKind, VocabularyCheck};
 pub use prefilter::Candidate;
 
 /// One learned entry: what the speech model wrote and the spelling to add.
@@ -39,6 +39,32 @@ pub fn normalize_word(word: &str) -> String {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// True when `meant` is written the way English marks a proper noun inside
+/// `sentence`: a capitalised word that is not in all caps, carries no digits,
+/// and does not open a sentence. The on-device model calls invented names it
+/// has never seen "common words"; the user's capitalisation says otherwise,
+/// and the user typed it.
+pub fn written_as_proper_noun(meant: &str, sentence: &str) -> bool {
+    let Some(first) = meant.split_whitespace().next() else {
+        return false;
+    };
+    let mut chars = first.chars();
+    let Some(initial) = chars.next() else {
+        return false;
+    };
+    if !initial.is_uppercase() || first.chars().any(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    if !chars.any(|c| c.is_lowercase()) {
+        return false;
+    }
+    let Some(index) = sentence.find(meant) else {
+        return false;
+    };
+    let before = sentence[..index].trim_end();
+    !(before.is_empty() || before.ends_with(['.', '!', '?', ':']))
 }
 
 /// Candidates from an edit, before the model is consulted. Empty when the
@@ -91,7 +117,15 @@ pub async fn learn<C: VocabularyCheck>(
     };
     let mut learned: Vec<Learned> = Vec::new();
     for (candidate, kind) in candidates.iter().zip(kinds) {
-        if kind.is_vocabulary() {
+        let proper_noun =
+            kind == CorrectionKind::CommonWord && written_as_proper_noun(&candidate.meant, edited);
+        if proper_noun {
+            debug!(
+                "learning: '{}' judged CommonWord but written as a proper noun, learning it",
+                candidate.meant
+            );
+        }
+        if kind.is_vocabulary() || proper_noun {
             let word = normalize_word(&candidate.meant);
             if !word.is_empty() && !learned.iter().any(|l| l.meant == word) {
                 learned.push(Learned {
@@ -111,7 +145,6 @@ pub async fn learn<C: VocabularyCheck>(
 
 #[cfg(test)]
 mod tests {
-    use super::check::CorrectionKind;
     use super::*;
     use std::future::Future;
     use std::sync::Mutex;
@@ -244,6 +277,64 @@ mod tests {
         .await;
         assert!(learned.is_empty());
         assert_eq!(check.calls(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_capitalised_mid_sentence_word_overrides_a_common_word_verdict() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        let learned = learn(
+            "Load it into kah voo.",
+            "Load it into Kavuu.",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["Kavuu"]
+        );
+    }
+
+    #[tokio::test]
+    async fn lowercase_and_sentence_initial_words_do_not_override() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        assert!(learn(
+            "Load it into kah voo.",
+            "Load it into kavuu.",
+            &ctx(&[], &[]),
+            &check
+        )
+        .await
+        .is_empty());
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        assert!(learn(
+            "Kah voo is the service.",
+            "Kavuu is the service.",
+            &ctx(&[], &[]),
+            &check
+        )
+        .await
+        .is_empty());
+    }
+
+    #[test]
+    fn proper_noun_shape() {
+        assert!(written_as_proper_noun(
+            "Ostrava",
+            "The Ostrava service handles enquiries."
+        ));
+        assert!(written_as_proper_noun(
+            "MacBook Pro",
+            "My MacBook Pro needs a restart."
+        ));
+        assert!(!written_as_proper_noun("Ostrava", "Ostrava handles it."));
+        assert!(!written_as_proper_noun("ostrava", "The ostrava service."));
+        assert!(!written_as_proper_noun("SDK", "Update the SDK first."));
+        assert!(!written_as_proper_noun("GPT4", "Use GPT4 for this."));
+        assert!(!written_as_proper_noun(
+            "Ostrava",
+            "Fine. Ostrava handles it."
+        ));
     }
 
     #[test]
