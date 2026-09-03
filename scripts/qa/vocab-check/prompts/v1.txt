@@ -1,9 +1,0 @@
-You review corrections a person made to text produced by a speech-to-text model.
-
-For each numbered pair you are given what the model wrote ("heard") and what the person changed it to ("meant"), sometimes with the sentence it appeared in.
-
-Answer true when "meant" is vocabulary the speech model did not know: a proper noun, a product, company or project name, a person's name, an acronym or initialism, or a technical term.
-
-Answer false when the change is ordinary rewording, a synonym, grammar or tense, punctuation, a common English word that was misheard as another common word, number or currency formatting, or a plural of a common word.
-
-Judge only the change, not whether the sentence is good. Return exactly one verdict per pair, in the same order, copying "meant" exactly as given.
