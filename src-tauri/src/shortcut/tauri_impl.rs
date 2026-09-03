@@ -5,7 +5,7 @@
 
 use log::{debug, error, warn};
 use tauri::AppHandle;
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Shortcut, ShortcutState};
 
 #[cfg(not(target_os = "linux"))]
 use crate::settings::get_settings;
@@ -161,6 +161,62 @@ pub fn unregister_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<
     Ok(())
 }
 
+/// The pin shortcut for a held transcribe shortcut: its modifiers plus Space,
+/// so Space pressed while the shortcut is still down fires it. `None` when the
+/// shortcut does not parse or already ends in Space.
+pub fn pin_shortcut_for(held_shortcut: &str) -> Option<String> {
+    let held: Shortcut = held_shortcut.parse().ok()?;
+    if held.key == Code::Space {
+        return None;
+    }
+    Some(Shortcut::new(Some(held.mods), Code::Space).into_string())
+}
+
+/// Register the pin shortcut (called when an unlocked hold begins)
+pub fn register_pin_shortcut(app: &AppHandle, held_shortcut: &str) {
+    // Disabled on Linux alongside the cancel shortcut: dynamic registration is unstable there
+    #[cfg(target_os = "linux")]
+    {
+        let _ = (app, held_shortcut);
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let Some(shortcut) = pin_shortcut_for(held_shortcut) else {
+            return;
+        };
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = register_shortcut(&app_clone, super::pin_binding(shortcut)) {
+                error!("Failed to register pin shortcut: {}", e);
+            }
+        });
+    }
+}
+
+/// Unregister the pin shortcut registered for `held_shortcut` (called once
+/// the recording is locked or ends)
+pub fn unregister_pin_shortcut(app: &AppHandle, held_shortcut: &str) {
+    #[cfg(target_os = "linux")]
+    {
+        let _ = (app, held_shortcut);
+        return;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let Some(shortcut) = pin_shortcut_for(held_shortcut) else {
+            return;
+        };
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            // Ignore errors: it may already be unregistered.
+            let _ = unregister_shortcut(&app_clone, super::pin_binding(shortcut));
+        });
+    }
+}
+
 /// Register the cancel shortcut (called when recording starts)
 pub fn register_cancel_shortcut(app: &AppHandle) {
     // Cancel shortcut is disabled on Linux due to instability with dynamic shortcut registration
@@ -201,5 +257,37 @@ pub fn unregister_cancel_shortcut(app: &AppHandle) {
                 let _ = unregister_shortcut(&app_clone, cancel_binding);
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pin_shortcut_for;
+
+    #[test]
+    fn pin_shortcut_keeps_the_held_modifiers_and_adds_space() {
+        let pin = pin_shortcut_for("ctrl+alt+KeyR").expect("parses");
+        let parsed: super::Shortcut = pin.parse().expect("round-trips");
+        let held: super::Shortcut = "ctrl+alt+KeyR".parse().unwrap();
+        assert_eq!(parsed.mods, held.mods);
+        assert_eq!(parsed.key, super::Code::Space);
+    }
+
+    #[test]
+    fn pin_shortcut_is_bare_space_for_an_unmodified_key() {
+        let pin = pin_shortcut_for("F5").expect("parses");
+        let parsed: super::Shortcut = pin.parse().expect("round-trips");
+        assert!(parsed.mods.is_empty());
+        assert_eq!(parsed.key, super::Code::Space);
+    }
+
+    #[test]
+    fn no_pin_shortcut_when_the_held_shortcut_ends_in_space() {
+        assert_eq!(pin_shortcut_for("alt+Space"), None);
+    }
+
+    #[test]
+    fn no_pin_shortcut_for_an_unparseable_shortcut() {
+        assert_eq!(pin_shortcut_for("fn"), None);
     }
 }

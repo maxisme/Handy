@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Impostazioni...",
     "checkUpdates": "Verifica aggiornamenti...",
-    "copyLastTranscript": "Copia l'ultima trascrizione",
+    "copyLastTranscript": "Copia trascrizione",
     "unloadModel": "Rilascia modello",
     "model": "Modello",
     "quit": "Esci",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Copia negli Appunti"
         }
       },
+      "copyPrompt": {
+        "label": "Popup di copia",
+        "description": "Mostra un piccolo popup per copiare la trascrizione quando termina senza che un campo di testo sia attivo (o se l'incollaggio fallisce)."
+      },
       "autoSubmit": {
         "title": "Invio automatico",
         "description": "Invia automaticamente la combinazione di tasti selezionata dopo l'inserimento del testo. Cmd+Enter si applica su macOS, mentre Windows/Linux usano Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Tasto di scelta rapida"
+      },
+      "always": {
+        "label": "Post-elabora sempre",
+        "description": "Esegue la post-elaborazione a ogni dettatura, non solo con la scorciatoia dedicata. Aggiunge circa un secondo per dettatura."
       },
       "api": {
         "title": "API (Compatibile con OpenAI)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Trascrizione...",
-    "processing": "Elaborazione..."
+    "processing": "Elaborazione...",
+    "copyLastTranscript": "Copia ultima trascrizione",
+    "copied": "Copiato",
+    "dismiss": "Chiudi",
+    "pin": "Continua a registrare",
+    "finish": "Fine"
   },
   "whatsNew": {
     "title": "Novità in Handy v{{version}}"

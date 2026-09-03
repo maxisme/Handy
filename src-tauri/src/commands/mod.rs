@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod history;
+pub mod learning;
 pub mod models;
 pub mod transcription;
 
@@ -7,6 +8,7 @@ use crate::settings::{
     get_settings, update_checks_forced_disabled, write_settings, AppSettings, LogLevel,
 };
 use crate::utils::cancel_current_operation;
+use crate::TranscriptionCoordinator;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
 
@@ -14,6 +16,40 @@ use tauri_plugin_opener::OpenerExt;
 #[specta::specta]
 pub fn cancel_operation(app: AppHandle) {
     cancel_current_operation(&app);
+}
+
+/// Copies the transcript offered by the overlay's "copy last transcript"
+/// prompt to the clipboard.
+#[tauri::command]
+#[specta::specta]
+pub fn copy_last_transcript(app: AppHandle) -> Result<(), String> {
+    crate::copy_prompt::copy_last_transcript(&app)
+}
+
+/// Closes the "copy last transcript" prompt without copying.
+#[tauri::command]
+#[specta::specta]
+pub fn dismiss_copy_prompt(app: AppHandle) {
+    crate::copy_prompt::dismiss(&app);
+}
+
+/// Overlay pin button: keep the live recording going after the shortcut key
+/// is released. Ends on the next press of the shortcut or `finish_recording`.
+#[tauri::command]
+#[specta::specta]
+pub fn pin_recording(app: AppHandle) {
+    if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {
+        coordinator.pin_recording();
+    }
+}
+
+/// Overlay finish button: stop the live recording and transcribe it.
+#[tauri::command]
+#[specta::specta]
+pub fn finish_recording(app: AppHandle) {
+    if let Some(coordinator) = app.try_state::<TranscriptionCoordinator>() {
+        coordinator.finish_recording();
+    }
 }
 
 #[tauri::command]

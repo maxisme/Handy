@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Instellingen...",
     "checkUpdates": "Controleren op updates...",
-    "copyLastTranscript": "Laatste transcriptie kopiëren",
+    "copyLastTranscript": "Transcriptie kopiëren",
     "unloadModel": "Model ontladen",
     "model": "Model",
     "quit": "Afsluiten",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Kopiëren naar klembord"
         }
       },
+      "copyPrompt": {
+        "label": "Kopieer-pop-up",
+        "description": "Toont een kleine pop-up om de transcriptie te kopiëren wanneer deze klaar is terwijl er geen tekstveld actief is (of het plakken mislukt)."
+      },
       "autoSubmit": {
         "title": "Automatisch verzenden",
         "description": "Verzend automatisch de geselecteerde toetsencombinatie na het invoegen van de tekst. Cmd+Enter geldt voor macOS, Windows/Linux gebruiken Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Sneltoets"
+      },
+      "always": {
+        "label": "Altijd nabewerken",
+        "description": "Voer nabewerking uit bij elk dictaat, niet alleen via de nabewerkingssneltoets. Voegt ongeveer een seconde per dictaat toe."
       },
       "api": {
         "title": "API (OpenAI-compatibel)",
@@ -694,7 +702,12 @@
   },
   "overlay": {
     "transcribing": "Transcriberen...",
-    "processing": "Verwerken..."
+    "processing": "Verwerken...",
+    "copyLastTranscript": "Laatste transcriptie kopiëren",
+    "copied": "Gekopieerd",
+    "dismiss": "Sluiten",
+    "pin": "Blijven opnemen",
+    "finish": "Klaar"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",

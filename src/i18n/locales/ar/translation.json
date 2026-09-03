@@ -2,7 +2,7 @@
   "tray": {
     "settings": "...الإعدادات",
     "checkUpdates": "...التحقق من وجود تحديثات",
-    "copyLastTranscript": "نسخ آخر نص تم تفريغه",
+    "copyLastTranscript": "نسخ التفريغ",
     "unloadModel": "تفريغ النموذج",
     "model": "النموذج",
     "quit": "إنهاء",
@@ -323,6 +323,10 @@
           "copyToClipboard": "نسخ إلى الحافظة"
         }
       },
+      "copyPrompt": {
+        "label": "نافذة النسخ المنبثقة",
+        "description": "عرض نافذة منبثقة صغيرة لنسخ التفريغ عند اكتماله بينما لا يوجد حقل نصي نشط (أو عند فشل اللصق)."
+      },
       "autoSubmit": {
         "title": "إرسال تلقائي",
         "description": "إرسال مجموعة المفاتيح المحددة تلقائياً بعد إدراج النص. Cmd+Enter ينطبق على macOS، بينما يستخدم Windows/Linux مفتاح Super+Enter.",
@@ -380,6 +384,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "مفتاح الاختصار"
+      },
+      "always": {
+        "label": "المعالجة اللاحقة دائمًا",
+        "description": "تشغيل المعالجة اللاحقة مع كل إملاء، وليس فقط عبر اختصار المعالجة اللاحقة. يضيف نحو ثانية لكل إملاء."
       },
       "api": {
         "title": "API (متوافق مع OpenAI)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "...جاري التفريغ",
-    "processing": "...جاري المعالجة"
+    "processing": "...جاري المعالجة",
+    "copyLastTranscript": "نسخ آخر تفريغ",
+    "copied": "تم النسخ",
+    "dismiss": "إغلاق",
+    "pin": "متابعة التسجيل",
+    "finish": "إنهاء"
   },
   "whatsNew": {
     "title": "الجديد في Handy v{{version}}"

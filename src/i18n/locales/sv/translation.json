@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Inställningar...",
     "checkUpdates": "Sök efter uppdateringar...",
-    "copyLastTranscript": "Kopiera senaste transkriptionen",
+    "copyLastTranscript": "Kopiera transkription",
     "unloadModel": "Avlasta modell",
     "model": "Modell",
     "quit": "Avsluta",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Kopiera till urklipp"
         }
       },
+      "copyPrompt": {
+        "label": "Kopieringspopup",
+        "description": "Visar en liten popup för att kopiera transkriptionen när den är klar medan inget textfält är i fokus (eller om inklistringen misslyckas)."
+      },
       "autoSubmit": {
         "title": "Skicka automatiskt",
         "description": "Skicka automatiskt den valda tangentkombinationen efter textinsättning. Cmd+Enter gäller på macOS, medan Windows/Linux använder Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Snabbkommando"
+      },
+      "always": {
+        "label": "Efterbehandla alltid",
+        "description": "Kör efterbehandling vid varje diktering, inte bara via efterbehandlingsgenvägen. Lägger till ungefär en sekund per diktering."
       },
       "api": {
         "title": "API (OpenAI-kompatibelt)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Transkriberar...",
-    "processing": "Bearbetar..."
+    "processing": "Bearbetar...",
+    "copyLastTranscript": "Kopiera senaste transkription",
+    "copied": "Kopierat",
+    "dismiss": "Stäng",
+    "pin": "Fortsätt spela in",
+    "finish": "Klar"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"

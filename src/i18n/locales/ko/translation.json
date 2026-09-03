@@ -346,6 +346,10 @@
           "copyToClipboard": "클립보드에 복사"
         }
       },
+      "copyPrompt": {
+        "label": "복사 팝업",
+        "description": "텍스트 입력란에 포커스가 없는 상태에서 전사가 완료되면(또는 붙여넣기가 실패하면) 전사 내용을 복사할 수 있는 작은 팝업을 표시합니다."
+      },
       "autoSubmit": {
         "title": "자동 제출",
         "description": "텍스트 삽입 후 선택한 키 조합을 자동으로 전송합니다. macOS에서는 Cmd+Enter가, Windows/Linux에서는 Super+Enter가 적용됩니다.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "단축키"
+      },
+      "always": {
+        "label": "항상 후처리",
+        "description": "후처리 단축키뿐 아니라 모든 받아쓰기에서 후처리를 실행합니다. 받아쓰기마다 약 1초가 추가됩니다."
       },
       "api": {
         "title": "API (OpenAI 호환)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
-    "processing": "처리 중..."
+    "processing": "처리 중...",
+    "copyLastTranscript": "마지막 전사 복사",
+    "copied": "복사됨",
+    "dismiss": "닫기",
+    "pin": "계속 녹음",
+    "finish": "완료"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

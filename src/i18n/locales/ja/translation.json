@@ -346,6 +346,10 @@
           "copyToClipboard": "クリップボードにコピー"
         }
       },
+      "copyPrompt": {
+        "label": "コピーのポップアップ",
+        "description": "テキスト入力欄にフォーカスがない状態で文字起こしが完了したとき（または貼り付けに失敗したとき）、文字起こしをコピーする小さなポップアップを表示します。"
+      },
       "autoSubmit": {
         "title": "自動送信",
         "description": "テキスト挿入後に選択したキーの組み合わせを自動的に送信します。macOS では Cmd+Enter、Windows/Linux では Super+Enter が適用されます。",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "ショートカット"
+      },
+      "always": {
+        "label": "常に後処理を行う",
+        "description": "後処理ホットキーだけでなく、すべての口述で後処理を実行します。口述ごとに約1秒かかります。"
       },
       "api": {
         "title": "API (OpenAI 互換)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "文字起こし中…",
-    "processing": "処理中…"
+    "processing": "処理中…",
+    "copyLastTranscript": "最後の文字起こしをコピー",
+    "copied": "コピーしました",
+    "dismiss": "閉じる",
+    "pin": "録音を続ける",
+    "finish": "完了"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

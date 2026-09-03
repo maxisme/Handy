@@ -2,7 +2,7 @@ use crate::input;
 use crate::settings;
 use crate::settings::{OverlayPosition, OverlayStyle};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
 
 #[cfg(not(target_os = "macos"))]
@@ -571,6 +571,21 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     }
 }
 
+/// Tell the recording overlay whether the live recording is pinned — it
+/// outlives the shortcut key and ends on the next press or the overlay's
+/// finish button. Queued onto the main thread behind show-overlay for the same
+/// recording, so the frontend never sees the pin state before the show.
+pub fn emit_recording_pinned(app_handle: &AppHandle, pinned: bool) {
+    if !OVERLAY_ENABLED.load(Ordering::Relaxed) {
+        return;
+    }
+
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "recording-pinned", pinned);
+    });
+}
+
 /// Notify the visible recording overlay that the input stream has delivered its
 /// first sample chunk. Audio feedback uses the same backend readiness signal,
 /// but this targeted event is skipped when overlays are disabled.
@@ -606,6 +621,36 @@ pub fn show_transcribing_overlay(app_handle: &AppHandle) {
 /// Shows the processing overlay window
 pub fn show_processing_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "processing");
+}
+
+/// Shows the "copy last transcript" prompt and schedules it to hide itself
+/// after `auto_hide_after`.
+///
+/// Deliberately not gated on `overlay_style`: that setting governs the
+/// recording indicator, while this prompt is the only place the transcript is
+/// still reachable after a paste that landed nowhere. The auto-hide is
+/// scheduled on the main thread right after the show, so its generation
+/// snapshot always postdates this show and predates any later one.
+pub fn show_copy_prompt_overlay(app_handle: &AppHandle, auto_hide_after: Duration) {
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        show_overlay_state_on_main(&handle, "copy-prompt");
+        hide_overlay_after(&handle, auto_hide_after);
+    });
+}
+
+/// Hides the overlay after `delay`, unless something shows it again first.
+pub fn hide_overlay_after(app_handle: &AppHandle, delay: Duration) {
+    let scheduled_at = OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst);
+    let handle = app_handle.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(delay);
+        if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) != scheduled_at {
+            log::debug!("Skipping stale delayed overlay hide: the overlay was shown again");
+            return;
+        }
+        hide_recording_overlay(&handle);
+    });
 }
 
 /// Updates the overlay window position based on current settings

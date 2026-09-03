@@ -445,6 +445,19 @@ pub struct AppSettings {
     pub auto_submit_key: AutoSubmitKey,
     #[serde(default = "default_post_process_enabled")]
     pub post_process_enabled: bool,
+    /// Run post-processing on the main transcribe hotkey too, not only on the
+    /// dedicated post-processing hotkey. Has no effect while
+    /// `post_process_enabled` is false.
+    #[serde(default = "default_post_process_always")]
+    pub post_process_always: bool,
+    /// Learn new custom words from the user's corrections to transcripts.
+    /// Needs a post-processing model, which makes the vocabulary judgment.
+    #[serde(default)]
+    pub learn_from_corrections: bool,
+    /// Match keys of learned words the user undid or removed. Never learned
+    /// automatically again; a manual add still works.
+    #[serde(default)]
+    pub learning_denylist: Vec<String>,
     #[serde(default = "default_post_process_provider_id")]
     pub post_process_provider_id: String,
     #[serde(default = "default_post_process_providers")]
@@ -514,6 +527,11 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Show a "copy last transcript" prompt on the overlay when a transcript
+    /// finishes while no text input has keyboard focus (or the paste fails),
+    /// so the text is still reachable. See `copy_prompt`.
+    #[serde(default = "default_copy_prompt_enabled")]
+    pub copy_prompt_enabled: bool,
 }
 
 fn default_model() -> String {
@@ -566,6 +584,10 @@ fn default_overlay_position() -> OverlayPosition {
     // Position only matters when the overlay is shown; whether it shows at all is
     // `overlay_style` (Linux defaults that to None). So a single default suffices.
     OverlayPosition::Bottom
+}
+
+fn default_copy_prompt_enabled() -> bool {
+    true
 }
 
 fn default_overlay_style() -> OverlayStyle {
@@ -653,6 +675,10 @@ fn default_post_process_provider_id() -> String {
 
 fn default_post_process_selected_prompt_id() -> Option<String> {
     Some(DEFAULT_IMPROVE_TRANSCRIPTIONS_PROMPT_ID.to_string())
+}
+
+fn default_post_process_always() -> bool {
+    true
 }
 
 fn default_mute_while_recording() -> bool {
@@ -976,6 +1002,9 @@ pub fn get_default_settings() -> AppSettings {
         auto_submit: default_auto_submit(),
         auto_submit_key: AutoSubmitKey::default(),
         post_process_enabled: default_post_process_enabled(),
+        post_process_always: default_post_process_always(),
+        learn_from_corrections: false,
+        learning_denylist: Vec::new(),
         post_process_provider_id: default_post_process_provider_id(),
         post_process_providers: default_post_process_providers(),
         post_process_api_keys: default_post_process_api_keys(),
@@ -1004,6 +1033,7 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         overlay_style: default_overlay_style(),
+        copy_prompt_enabled: default_copy_prompt_enabled(),
     }
 }
 
@@ -1366,6 +1396,9 @@ mod tests {
             "auto_submit": false,
             "auto_submit_key": "enter",
             "post_process_enabled": false,
+            "post_process_always": false,
+            "learn_from_corrections": false,
+            "learning_denylist": [],
             "post_process_provider_id": "openai",
             "post_process_providers": [
                 {

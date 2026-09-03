@@ -56,6 +56,7 @@
   --ov-work-w: 216px; /* working pill (transcribing / polishing) -- wide enough to
                          center longer labels; shared by Live (collapsed) + minimal */
   --ov-open-w: 392px; /* Live panel, expanded */
+  --ov-copy-max-w: 246px; /* copy prompt cap; OVERLAY_WIDTH (256) minus border and slack */
   --ov-base-h: 40px; /* control-row height (.sbase) */
   --ov-cap-max-h: 64px; /* max height of the scrolling live-text region */
 }
@@ -216,6 +217,14 @@
 .scard.compact.cworking {
   width: var(--ov-work-w);
 }
+/* Copy prompt: content-sized so longer translations fit, capped just inside
+   the native window width (OVERLAY_WIDTH in overlay.rs) — a label beyond the
+   cap still ellipsizes rather than clipping. */
+.scard.compact.ccopy {
+  width: fit-content;
+  min-width: var(--ov-work-w);
+  max-width: var(--ov-copy-max-w);
+}
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */
 .stext {
@@ -282,58 +291,32 @@
   }
 }
 
-/* base row — dot (left) | waveform (center) | timer + cancel (right).
-   Same structure for pill & panel; the dot stays anchored left in both. */
+/* base row — pin/finish (left) | waveform (center) | timer + cancel (right).
+   Same structure for pill & panel; the left button stays anchored in both. */
 .sbase {
   height: var(--ov-base-h);
   padding: 0 10px;
   display: grid;
-  /* Equal side columns (min 22px to hold the cancel button) keep the center item
-     — waveform or label — centered whether the pill is at min width or content-
-     sized. */
+  /* Equal side columns (min 22px to hold a button each side) keep the center
+     item — waveform or label — centered whether the pill is at min width or
+     content-sized. */
   grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
   align-items: center;
 }
 .sbase-l {
   display: flex;
-  padding-left: 5px;
   align-items: center;
   justify-self: start;
+}
+/* The spinner is narrower than a button; inset it so it sits where the button did. */
+.sbase-l .sspinner {
+  margin-left: 5px;
 }
 .sbase-r {
   display: flex;
   align-items: center;
   gap: 10px;
   justify-self: end;
-}
-.sdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex: none;
-  box-sizing: border-box;
-  transition:
-    background-color 180ms ease,
-    opacity 180ms ease;
-}
-.sdot.ready {
-  background: var(--s-accent);
-  opacity: 1;
-  animation: sdot-pulse 1.9s infinite;
-}
-/* A quiet neutral dot while the host has not delivered its first sample yet. */
-.sdot.arming {
-  background: var(--s-muted);
-  opacity: 0.45;
-  animation: none;
-}
-@keyframes sdot-pulse {
-  0% {
-    box-shadow: 0 0 0 0 var(--s-accent-soft);
-  }
-  70% {
-    box-shadow: 0 0 0 7px transparent;
-  }
 }
 .stimer {
   font-size: 12px;
@@ -433,6 +416,50 @@
 }
 .sx:active {
   transform: scale(0.95);
+}
+.sx.spin svg,
+.sx.sdone svg {
+  width: 11px;
+  height: 11px;
+}
+/* Finish is the primary action once a recording is pinned: accent, not muted. */
+.sx.sdone {
+  color: var(--s-accent);
+  background: var(--s-accent-soft);
+}
+.sx.sdone:hover {
+  color: var(--color-text);
+}
+
+/* copy prompt — text button in the working pill's footprint */
+.scopy {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  padding: 3px 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.scopy:hover {
+  background: var(--s-accent-soft);
+}
+.scopy.done,
+.scopy:disabled {
+  color: var(--s-muted);
+  background: transparent;
+  cursor: default;
 }
 
 /* working state (transcribing / polishing) — spinner + label */

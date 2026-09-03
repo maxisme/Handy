@@ -2,7 +2,7 @@
   "tray": {
     "settings": "הגדרות...",
     "checkUpdates": "בדוק עדכונים...",
-    "copyLastTranscript": "העתק את התמלול האחרון",
+    "copyLastTranscript": "העתק את התמלול",
     "unloadModel": "פרוק מודל",
     "model": "מודל",
     "quit": "יציאה",
@@ -346,6 +346,10 @@
           "copyToClipboard": "העתק ללוח"
         }
       },
+      "copyPrompt": {
+        "label": "חלון קופץ להעתקה",
+        "description": "מציג חלון קופץ קטן להעתקת התמלול כשהוא מסתיים בזמן שאף שדה טקסט אינו פעיל (או כשההדבקה נכשלת)."
+      },
       "autoSubmit": {
         "title": "שליחה אוטומטית",
         "description": "שלח אוטומטית את צירוף המקשים שנבחר אחרי הכנסת הטקסט. ב-macOS יופעל Cmd+Enter, וב-Windows/Linux יופעל Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "קיצור מקשים"
+      },
+      "always": {
+        "label": "תמיד לבצע עיבוד לאחר",
+        "description": "מפעיל עיבוד לאחר בכל הכתבה, לא רק דרך קיצור העיבוד לאחר. מוסיף כשנייה לכל הכתבה."
       },
       "api": {
         "title": "API (תואם OpenAI)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "מתמלל...",
-    "processing": "מעבד..."
+    "processing": "מעבד...",
+    "copyLastTranscript": "העתק את התמלול האחרון",
+    "copied": "הועתק",
+    "dismiss": "סגור",
+    "pin": "המשך הקלטה",
+    "finish": "סיום"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

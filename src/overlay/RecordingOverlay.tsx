@@ -12,7 +12,12 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 
-type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
+type OverlayState =
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "copy-prompt";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -26,6 +31,10 @@ const RecordingOverlay: React.FC = () => {
   // Stay visually in an arming state until the backend processes the first
   // actual microphone sample chunk.
   const [captureReady, setCaptureReady] = useState(false);
+  // Whether the recording outlives the shortcut key (a tap, toggle mode, or the
+  // pin button). Unpinned: releasing the key ends it, so offer the pin. Pinned:
+  // only the next press ends it, so offer the finish tick instead.
+  const [pinned, setPinned] = useState(false);
   const [levels, setLevels] = useState<number[]>(Array(WAVE_BARS).fill(0));
   const [streamText, setStreamText] = useState<StreamTextEvent>({
     committed: "",
@@ -43,6 +52,9 @@ const RecordingOverlay: React.FC = () => {
   // True once live text overflows the cap. A top overlay fades its top edge only
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
+  // Copy prompt: flips to true once the transcript is on the clipboard so the
+  // button can confirm before the backend hides the overlay.
+  const [copied, setCopied] = useState(false);
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
@@ -61,9 +73,13 @@ const RecordingOverlay: React.FC = () => {
         // them would overwrite that event and leave the overlay stuck arming.
         if (overlayState === "recording" || overlayState === "streaming") {
           setCaptureReady(false);
+          setPinned(false);
           smoothedLevelsRef.current = Array(16).fill(0);
           setLevels(Array(WAVE_BARS).fill(0));
           setStreamText({ committed: "", tentative: "" });
+        }
+        if (overlayState === "copy-prompt") {
+          setCopied(false);
         }
 
         await syncLanguageFromSettings();
@@ -99,6 +115,13 @@ const RecordingOverlay: React.FC = () => {
         setCaptureReady(true);
       });
 
+      const unlistenPinned = await listen<boolean>(
+        "recording-pinned",
+        (event) => {
+          setPinned(event.payload);
+        },
+      );
+
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
         // Exponential smoothing across the 16 buckets, then take the first N
@@ -125,6 +148,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenShow();
         unlistenHide();
         unlistenReady();
+        unlistenPinned();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
@@ -183,12 +207,8 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
-  const cancelBtn = (
-    <button
-      className="sx"
-      aria-label="cancel"
-      onClick={() => commands.cancelOperation()}
-    >
+  const closeBtn = (label: string, onClick: () => void) => (
+    <button className="sx" aria-label={label} onClick={onClick}>
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <path
           d="M4 4 L12 12 M12 4 L4 12"
@@ -200,13 +220,57 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
-  // dot (left) | waveform (center) | timer + cancel (right) — same structure for
-  // pill & panel, so the Live morph is a pure width change.
+  const cancelBtn = closeBtn("cancel", () => commands.cancelOperation());
+
+  // Pin: keep recording after the shortcut key is released. Shown while the
+  // release would end the recording (a push-to-talk hold).
+  const pinBtn = (
+    <button
+      className="sx spin"
+      aria-label={t("overlay.pin")}
+      title={t("overlay.pin")}
+      onClick={() => commands.pinRecording()}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M5.5 2.5 H10.5 M6.5 2.5 V6.5 L4 9.5 H12 L9.5 6.5 V2.5 M8 9.5 V14"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+
+  // Finish: stop and transcribe. Shown once the recording outlives the key
+  // (pinned, a tap, or toggle mode) — the same as pressing the shortcut again.
+  const finishBtn = (
+    <button
+      className="sx sdone"
+      aria-label={t("overlay.finish")}
+      title={t("overlay.finish")}
+      onClick={() => commands.finishRecording()}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M3.5 8.5 L6.5 11.5 L12.5 5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+
+  // pin/finish (left) | waveform (center) | timer + cancel (right) — same
+  // structure for pill & panel, so the Live morph is a pure width change.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
-      <div className="sbase-l">
-        <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
-      </div>
+      <div className="sbase-l">{pinned ? finishBtn : pinBtn}</div>
       {waveform}
       <div className="sbase-r">
         {showTimer && <span className="stimer">{fmtTime(elapsed)}</span>}
@@ -274,6 +338,42 @@ const RecordingOverlay: React.FC = () => {
                 true,
               )
             : listeningRow(open, true)}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Copy prompt: the transcript finished but nothing editable was focused
+  // (or the paste failed), so offer it for the clipboard instead. Same compact
+  // pill as the working state: empty (left) | button (center) | dismiss (right);
+  // the empty left cell keeps the button centered.
+  if (state === "copy-prompt") {
+    const handleCopy = async () => {
+      if (copied) return;
+      const result = await commands.copyLastTranscript();
+      if (result.status === "ok") setCopied(true);
+    };
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact ccopy">
+          <div className="sbase">
+            <div className="sbase-l" />
+            <button
+              className={`scopy ${copied ? "done" : ""}`}
+              onClick={handleCopy}
+              disabled={copied}
+            >
+              {copied ? t("overlay.copied") : t("overlay.copyLastTranscript")}
+            </button>
+            <div className="sbase-r">
+              {closeBtn(t("overlay.dismiss"), () =>
+                commands.dismissCopyPrompt(),
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );

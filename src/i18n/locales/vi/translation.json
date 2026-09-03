@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Cài đặt...",
     "checkUpdates": "Kiểm tra cập nhật...",
-    "copyLastTranscript": "Sao chép bản chép lời mới nhất",
+    "copyLastTranscript": "Sao chép bản chép lời",
     "unloadModel": "Dỡ mô hình",
     "model": "Mô hình",
     "quit": "Thoát",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Sao chép vào Clipboard"
         }
       },
+      "copyPrompt": {
+        "label": "Cửa sổ sao chép",
+        "description": "Hiển thị một cửa sổ nhỏ để sao chép bản chép lời khi hoàn tất mà không có ô văn bản nào đang được chọn (hoặc khi dán thất bại)."
+      },
       "autoSubmit": {
         "title": "Gửi tự động",
         "description": "Tự động gửi tổ hợp phím đã chọn sau khi chèn văn bản. Cmd+Enter áp dụng trên macOS, còn Windows/Linux dùng Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Phím tắt"
+      },
+      "always": {
+        "label": "Luôn hậu xử lý",
+        "description": "Chạy hậu xử lý cho mọi lần đọc chính tả, không chỉ với phím tắt hậu xử lý. Thêm khoảng một giây cho mỗi lần đọc."
       },
       "api": {
         "title": "API (Tương thích OpenAI)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
-    "processing": "Đang xử lý..."
+    "processing": "Đang xử lý...",
+    "copyLastTranscript": "Sao chép bản chép lời gần nhất",
+    "copied": "Đã sao chép",
+    "dismiss": "Đóng",
+    "pin": "Tiếp tục ghi âm",
+    "finish": "Xong"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

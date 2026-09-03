@@ -2,6 +2,8 @@
 use crate::apple_intelligence;
 use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
+use crate::copy_prompt;
+use crate::focus;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
@@ -79,10 +81,73 @@ fn strip_think_block(s: &str) -> &str {
     s
 }
 
+/// The dedicated post-processing hotkey always post-processes. The main
+/// hotkey only does so when the user turned on "always post-process", and
+/// even then only while post-processing itself is enabled.
+fn should_post_process(hotkey_requests_it: bool, settings: &AppSettings) -> bool {
+    hotkey_requests_it || (settings.post_process_enabled && settings.post_process_always)
+}
+
+/// Words of `text` as lowercase alphanumeric tokens, deduplicated.
+fn word_set(text: &str) -> std::collections::HashSet<String> {
+    text.split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(|w| w.to_lowercase())
+        .collect()
+}
+
+/// True when a post-processing result no longer looks like an edit of the
+/// transcript: the model answered it, summarised it, extracted a fragment, or
+/// wrote something new. Short inputs are exempt from the overlap test because
+/// legitimate edits like "fifty pounds" to "£50" share no words with the
+/// original.
+fn looks_like_rewrite(transcription: &str, output: &str) -> bool {
+    let input_len = transcription.trim().chars().count();
+    let output_len = output.trim().chars().count();
+    if input_len >= 20 && output_len > input_len * 5 / 2 + 40 {
+        return true;
+    }
+    let input_words = word_set(transcription);
+    if input_words.len() < 5 {
+        return false;
+    }
+    let output_words = word_set(output);
+    let shared = input_words.intersection(&output_words).count();
+    (shared as f64) / (input_words.len() as f64) < 0.4
+}
+
+/// Instructions for Apple Intelligence. The user's own template, with the
+/// transcript filled in, travels as the user message instead: with the
+/// template as instructions and the bare transcript as the message, the
+/// on-device model treats dictations that look like requests as requests and
+/// answers them.
+const APPLE_INTELLIGENCE_INSTRUCTIONS: &str =
+    "You clean up speech-to-text transcripts. Return only the cleaned transcript text.";
+
 /// Build a system prompt from the user's prompt template.
 /// Removes `${output}` placeholder since the transcription is sent as the user message.
 fn build_system_prompt(prompt_template: &str) -> String {
     prompt_template.replace("${output}", "").trim().to_string()
+}
+
+/// Append the user's custom words to a post-processing prompt so the model
+/// can fix mishearings of them. Speech models that take no vocabulary hint
+/// (Parakeet and the other non-Whisper engines) otherwise leave those terms
+/// to the fuzzy matcher, which only catches spellings close to the target.
+fn with_custom_words(prompt: &str, custom_words: &[String]) -> String {
+    let words: Vec<&str> = custom_words
+        .iter()
+        .map(|w| w.trim())
+        .filter(|w| !w.is_empty())
+        .collect();
+    if words.is_empty() {
+        return prompt.to_string();
+    }
+    format!(
+        "{}\n\nTerms this user says often, with their exact spelling:\n{}\n\nIf a word or phrase in the transcript is a mishearing of one of these terms, replace it with the exact spelling above. Do not change anything else because of this list.",
+        prompt.trim_end(),
+        words.join(", ")
+    )
 }
 
 /// Returns `true` when a transcription has no meaningful content to
@@ -174,6 +239,8 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         return None;
     }
 
+    let prompt = with_custom_words(&prompt, &settings.custom_words);
+
     debug!(
         "Starting LLM post-processing with provider '{}' (model: {})",
         provider.id, model
@@ -208,9 +275,15 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
                 }
 
                 let token_limit = model.trim().parse::<i32>().unwrap_or(0);
+                let apple_user_content = prompt.replace("${output}", transcription);
+                debug!(
+                    "Post-processing input ({} chars): '{}'",
+                    transcription.chars().count(),
+                    utils::redact_text(transcription)
+                );
                 return match apple_intelligence::process_text_with_system_prompt(
-                    &system_prompt,
-                    &user_content,
+                    APPLE_INTELLIGENCE_INSTRUCTIONS,
+                    &apple_user_content,
                     token_limit,
                 ) {
                     Ok(result) => {
@@ -220,8 +293,9 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
                         } else {
                             let result = strip_invisible_chars(&result);
                             debug!(
-                                "Apple Intelligence post-processing succeeded. Output length: {} chars",
-                                result.len()
+                                "Apple Intelligence post-processing succeeded. Output length: {} chars: '{}'",
+                                result.chars().count(),
+                                utils::redact_text(&result)
                             );
                             Some(result)
                         }
@@ -441,8 +515,19 @@ pub(crate) async fn process_transcription_output(
 
     if post_process {
         if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
-            post_processed_text = Some(processed_text.clone());
-            final_text = processed_text;
+            if looks_like_rewrite(&final_text, &processed_text) {
+                warn!(
+                    "Post-processing output discarded: it does not resemble the transcript ({} chars in, {} chars out). In: '{}' Out: '{}'",
+                    final_text.chars().count(),
+                    processed_text.chars().count(),
+                    utils::redact_text(&final_text),
+                    utils::redact_text(&processed_text)
+                );
+                post_processed_text = None;
+            } else {
+                post_processed_text = Some(processed_text.clone());
+                final_text = processed_text;
+            }
 
             if let Some(prompt_id) = &settings.post_process_selected_prompt_id {
                 if let Some(prompt) = settings
@@ -668,7 +753,7 @@ impl ShortcutAction for TranscribeAction {
         play_feedback_sound(app, SoundType::Stop);
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
-        let post_process = self.post_process;
+        let post_process = should_post_process(self.post_process, &get_settings(app));
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -822,17 +907,39 @@ impl ShortcutAction for TranscribeAction {
                                         return;
                                     }
 
-                                    match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
-                                        Err(e) => {
-                                            error!("Failed to paste transcription: {}", e);
-                                            let _ = ah_clone.emit("paste-error", ());
-                                        }
+                                    // Sampled before the paste: the chord never moves
+                                    // focus, and this is the last moment the target the
+                                    // user actually had is observable.
+                                    let target_is_text_input =
+                                        focus::focused_element_is_text_input();
+                                    let transcript = final_text.clone();
+                                    let paste_failed =
+                                        match utils::paste(final_text, ah_clone.clone()) {
+                                            Ok(()) => {
+                                                debug!(
+                                                    "Text pasted successfully in {:?}",
+                                                    paste_time.elapsed()
+                                                );
+                                                false
+                                            }
+                                            Err(e) => {
+                                                error!("Failed to paste transcription: {}", e);
+                                                let _ = ah_clone.emit("paste-error", ());
+                                                true
+                                            }
+                                        };
+                                    let settings = get_settings(&ah_clone);
+                                    if copy_prompt::should_offer_copy(
+                                        &settings,
+                                        target_is_text_input,
+                                        paste_failed,
+                                    ) {
+                                        // Replaces the hide: the overlay stays up showing
+                                        // the prompt and hides itself when it expires.
+                                        copy_prompt::offer(&ah_clone, transcript);
+                                    } else {
+                                        utils::hide_recording_overlay(&ah_clone);
                                     }
-                                    utils::hide_recording_overlay(&ah_clone);
                                     set_tray_state(&ah_clone, TrayIconState::Idle);
                                 })
                                 .unwrap_or_else(|e| {
@@ -958,15 +1065,77 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        complete_unless_cancelled, is_blank_transcription, looks_like_rewrite, should_post_process,
+        should_use_streaming_overlay, strip_think_block, with_custom_words,
     };
+    use crate::settings::AppSettings;
     use crate::settings::OverlayStyle;
     use std::future;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::thread;
     use std::time::Duration;
+
+    #[test]
+    fn edits_that_keep_most_words_are_not_rewrites() {
+        let input = "There are twenty five open tickets, um, and usage grew ten percent.";
+        assert!(!looks_like_rewrite(
+            input,
+            "There are 25 open tickets, and usage grew 10%."
+        ));
+        assert!(!looks_like_rewrite("fifty pounds", "£50"));
+        assert!(!looks_like_rewrite(
+            "Hey, uhh what is the um time",
+            "Hey, what is the time?"
+        ));
+    }
+
+    #[test]
+    fn answers_summaries_and_fragments_are_rewrites() {
+        let input = "I just did a fairly long transcript about WhatsApp and it said some weird it did some weird rewording";
+        let answer = "I'm sorry to hear that you encountered some issues with the transcript. However, I'm unable to directly access or analyze the content of the transcript you provided. If you can share some specific details or examples of the weird rewording, I might be able to help you understand or address the problem.";
+        assert!(looks_like_rewrite(input, answer));
+        assert!(looks_like_rewrite(
+            "Can you send me the report by Friday so the team has time to review it?",
+            "Sure! I'll make sure the report reaches you before Friday."
+        ));
+        assert!(looks_like_rewrite("It costs fifty pounds a month.", "£50"));
+    }
+
+    #[test]
+    fn dedicated_hotkey_always_post_processes() {
+        let settings = AppSettings::default();
+        assert!(should_post_process(true, &settings));
+    }
+
+    #[test]
+    fn main_hotkey_post_processes_only_when_always_is_on_and_enabled() {
+        let mut settings = AppSettings::default();
+        assert!(!should_post_process(false, &settings));
+        settings.post_process_always = true;
+        assert!(!should_post_process(false, &settings));
+        settings.post_process_enabled = true;
+        assert!(should_post_process(false, &settings));
+        settings.post_process_always = false;
+        assert!(!should_post_process(false, &settings));
+    }
+
+    #[test]
+    fn with_custom_words_leaves_prompt_alone_when_list_is_empty() {
+        let prompt = "<transcript>\n${output}\n</transcript>\n\nClean it.";
+        assert_eq!(with_custom_words(prompt, &[]), prompt);
+        assert_eq!(with_custom_words(prompt, &["  ".to_string()]), prompt);
+    }
+
+    #[test]
+    fn with_custom_words_appends_the_terms_block() {
+        let prompt = "Clean it.\n";
+        let words = vec!["ChargeBee".to_string(), " R&D ".to_string(), "".to_string()];
+        assert_eq!(
+            with_custom_words(prompt, &words),
+            "Clean it.\n\nTerms this user says often, with their exact spelling:\nChargeBee, R&D\n\nIf a word or phrase in the transcript is a mishearing of one of these terms, replace it with the exact spelling above. Do not change anything else because of this list."
+        );
+    }
 
     #[test]
     fn blank_transcription_is_detected() {

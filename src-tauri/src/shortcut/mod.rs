@@ -79,6 +79,45 @@ pub fn unregister_cancel_shortcut(app: &AppHandle) {
     }
 }
 
+/// Binding id of the dynamic pin shortcut: the held transcribe hotkey's
+/// modifiers plus Space, live only while a hold-mode recording is unlocked.
+/// Pressing it keeps the recording going after the key is released, exactly
+/// like the overlay's pin button.
+pub const PIN_BINDING_ID: &str = "pin";
+
+/// Register the pin shortcut for the held transcribe hotkey (called when an
+/// unlocked hold begins). Nothing is registered when that hotkey already ends
+/// in Space, since there is no distinct key left to press.
+pub fn register_pin_shortcut(app: &AppHandle, held_hotkey: &str) {
+    let settings = get_settings(app);
+    match settings.keyboard_implementation {
+        KeyboardImplementation::Tauri => tauri_impl::register_pin_shortcut(app, held_hotkey),
+        KeyboardImplementation::HandyKeys => handy_keys::register_pin_shortcut(app, held_hotkey),
+    }
+}
+
+/// Unregister the pin shortcut registered for `held_hotkey` (called once the
+/// recording is locked or ends).
+pub fn unregister_pin_shortcut(app: &AppHandle, held_hotkey: &str) {
+    let settings = get_settings(app);
+    match settings.keyboard_implementation {
+        KeyboardImplementation::Tauri => tauri_impl::unregister_pin_shortcut(app, held_hotkey),
+        KeyboardImplementation::HandyKeys => handy_keys::unregister_pin_shortcut(app),
+    }
+}
+
+/// The transient binding the pin shortcut is registered under. Only the id and
+/// hotkey matter to the keyboard implementations.
+pub(crate) fn pin_binding(hotkey: String) -> ShortcutBinding {
+    ShortcutBinding {
+        id: PIN_BINDING_ID.to_string(),
+        name: "Pin".to_string(),
+        description: "Keep recording after the shortcut is released".to_string(),
+        default_binding: hotkey.clone(),
+        current_binding: hotkey,
+    }
+}
+
 /// Register a shortcut using the appropriate implementation
 pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), String> {
     let settings = get_settings(app);
@@ -706,6 +745,7 @@ pub fn change_debug_mode_setting(app: AppHandle, enabled: bool) -> Result<(), St
     // Keep webview log streaming in sync: the live log viewer only exists in
     // debug mode, so logs are forwarded to the frontend only while it is on.
     crate::WEBVIEW_LOG_STREAMING.store(enabled, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::TRANSCRIPT_LOGGING.store(enabled, std::sync::atomic::Ordering::Relaxed);
 
     // Emit event to notify frontend of debug mode change
     let _ = app.emit(
@@ -1000,6 +1040,24 @@ pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(),
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_learn_from_corrections_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.learn_from_corrections = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_always_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_always = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_post_process_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.post_process_enabled = enabled;
@@ -1263,6 +1321,15 @@ pub fn change_mute_while_recording_setting(app: AppHandle, enabled: bool) -> Res
 pub fn change_append_trailing_space_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.append_trailing_space = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_copy_prompt_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.copy_prompt_enabled = enabled;
     settings::write_settings(&app, settings);
     Ok(())
 }

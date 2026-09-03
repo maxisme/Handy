@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Configuración...",
     "checkUpdates": "Buscar actualizaciones...",
-    "copyLastTranscript": "Copiar la última transcripción",
+    "copyLastTranscript": "Copiar transcripción",
     "unloadModel": "Descargar modelo",
     "model": "Modelo",
     "quit": "Salir",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Copiar al portapapeles"
         }
       },
+      "copyPrompt": {
+        "label": "Ventana de copia",
+        "description": "Muestra una pequeña ventana emergente para copiar la transcripción cuando termina sin que haya un campo de texto enfocado (o si falla el pegado)."
+      },
       "autoSubmit": {
         "title": "Envío automático",
         "description": "Envía automáticamente la combinación de teclas seleccionada después de insertar el texto. Cmd+Enter se aplica en macOS, mientras que Windows/Linux usan Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Tecla de acceso rápido"
+      },
+      "always": {
+        "label": "Posprocesar siempre",
+        "description": "Ejecuta el posprocesado en cada dictado, no solo con el atajo de posprocesado. Añade alrededor de un segundo por dictado."
       },
       "api": {
         "title": "API (compatible con OpenAI)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Transcribiendo...",
-    "processing": "Procesando..."
+    "processing": "Procesando...",
+    "copyLastTranscript": "Copiar última transcripción",
+    "copied": "Copiado",
+    "dismiss": "Cerrar",
+    "pin": "Seguir grabando",
+    "finish": "Finalizar"
   },
   "whatsNew": {
     "title": "Nuevo en Handy v{{version}}"

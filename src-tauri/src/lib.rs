@@ -8,8 +8,11 @@ mod catalog;
 pub mod cli;
 mod clipboard;
 mod commands;
+mod copy_prompt;
+mod focus;
 mod helpers;
 mod input;
+mod learning;
 mod llm_client;
 mod managers;
 mod memory;
@@ -675,6 +678,10 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_auto_submit_setting,
             shortcut::change_auto_submit_key_setting,
             shortcut::change_post_process_enabled_setting,
+            shortcut::change_post_process_always_setting,
+            shortcut::change_learn_from_corrections_setting,
+            commands::learning::get_learning_availability,
+            commands::learning::learn_from_correction,
             shortcut::change_experimental_enabled_setting,
             shortcut::change_post_process_base_url_setting,
             shortcut::change_post_process_api_key_setting,
@@ -690,6 +697,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
+            shortcut::change_copy_prompt_enabled_setting,
             shortcut::change_lazy_stream_close_setting,
             shortcut::change_vad_enabled_setting,
             shortcut::change_vad_backend_setting,
@@ -712,6 +720,10 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
+            commands::copy_last_transcript,
+            commands::dismiss_copy_prompt,
+            commands::pin_recording,
+            commands::finish_recording,
             commands::is_portable,
             commands::is_update_checks_locked,
             commands::get_app_dir_path,
@@ -970,8 +982,10 @@ pub fn run(cli_args: CliArgs) {
             // viewer is the sole consumer and only exists in debug mode). This also
             // honors the runtime `--debug` override applied to `settings` above.
             WEBVIEW_LOG_STREAMING.store(settings.debug_mode, Ordering::Relaxed);
+            utils::TRANSCRIPT_LOGGING.store(settings.debug_mode, Ordering::Relaxed);
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
+            app.manage(copy_prompt::LastTranscript::default());
 
             initialize_core_logic(&app_handle);
 

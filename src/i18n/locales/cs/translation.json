@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Nastavení...",
     "checkUpdates": "Zkontrolovat aktualizace...",
-    "copyLastTranscript": "Zkopírovat poslední přepis",
+    "copyLastTranscript": "Kopírovat přepis",
     "unloadModel": "Uvolnit model",
     "model": "Model",
     "quit": "Ukončit",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Kopírovat do schránky"
         }
       },
+      "copyPrompt": {
+        "label": "Vyskakovací okno pro kopírování",
+        "description": "Zobrazí malé vyskakovací okno pro zkopírování přepisu, když skončí, aniž by bylo aktivní textové pole (nebo když se vložení nezdaří)."
+      },
       "autoSubmit": {
         "title": "Automatické odeslání",
         "description": "Automaticky odešle vybranou kombinaci kláves po vložení textu. Cmd+Enter platí pro macOS, zatímco Windows/Linux používají Super+Enter.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Klávesová zkratka"
+      },
+      "always": {
+        "label": "Vždy dodatečně zpracovat",
+        "description": "Spustí dodatečné zpracování při každém diktování, nejen přes vyhrazenou zkratku. Přidá přibližně jednu sekundu na diktování."
       },
       "api": {
         "title": "API (kompatibilní s OpenAI)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Přepisuji...",
-    "processing": "Zpracovávám..."
+    "processing": "Zpracovávám...",
+    "copyLastTranscript": "Kopírovat poslední přepis",
+    "copied": "Zkopírováno",
+    "dismiss": "Zavřít",
+    "pin": "Pokračovat v nahrávání",
+    "finish": "Dokončit"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

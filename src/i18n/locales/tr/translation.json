@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Ayarlar...",
     "checkUpdates": "Güncellemeleri Kontrol Et...",
-    "copyLastTranscript": "Son Transkripti Kopyala",
+    "copyLastTranscript": "Transkripti kopyala",
     "unloadModel": "Modeli Boşalt",
     "model": "Model",
     "quit": "Çıkış",
@@ -346,6 +346,10 @@
           "copyToClipboard": "Panoya Kopyala"
         }
       },
+      "copyPrompt": {
+        "label": "Kopyalama Penceresi",
+        "description": "Transkripsiyon, hiçbir metin alanı odakta değilken bittiğinde (veya yapıştırma başarısız olduğunda) transkripti kopyalamayı öneren küçük bir pencere gösterir."
+      },
       "autoSubmit": {
         "title": "Otomatik Gönder",
         "description": "Metin eklendikten sonra seçilen tuş kombinasyonunu otomatik olarak gönderir. macOS'ta Cmd+Enter, Windows/Linux'ta Super+Enter geçerlidir.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Kısayol Tuşu"
+      },
+      "always": {
+        "label": "Her zaman son işleme uygula",
+        "description": "Son işlemeyi yalnızca son işleme kısayolunda değil, her diktede çalıştırır. Dikte başına yaklaşık bir saniye ekler."
       },
       "api": {
         "title": "API (OpenAI Uyumlu)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
-    "processing": "İşleniyor..."
+    "processing": "İşleniyor...",
+    "copyLastTranscript": "Son transkripti kopyala",
+    "copied": "Kopyalandı",
+    "dismiss": "Kapat",
+    "pin": "Kayda devam et",
+    "finish": "Bitir"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

@@ -2,7 +2,7 @@
   "tray": {
     "settings": "Einstellungen...",
     "checkUpdates": "Nach Updates suchen...",
-    "copyLastTranscript": "Letzte Transkription kopieren",
+    "copyLastTranscript": "Transkript kopieren",
     "unloadModel": "Modell entladen",
     "model": "Modell",
     "quit": "Beenden",
@@ -346,6 +346,10 @@
           "copyToClipboard": "In Zwischenablage kopieren"
         }
       },
+      "copyPrompt": {
+        "label": "Kopier-Popup",
+        "description": "Zeigt ein kleines Popup zum Kopieren des Transkripts, wenn die Transkription endet, während kein Textfeld fokussiert ist (oder das Einfügen fehlschlägt)."
+      },
       "autoSubmit": {
         "title": "Automatisch absenden",
         "description": "Sendet nach dem Einfügen von Text automatisch die ausgewählte Tastenkombination. Cmd+Enter gilt für macOS, während Windows/Linux Super+Enter verwenden.",
@@ -403,6 +407,10 @@
     "postProcessing": {
       "hotkey": {
         "title": "Tastenkürzel"
+      },
+      "always": {
+        "label": "Immer nachbearbeiten",
+        "description": "Nachbearbeitung bei jedem Diktat ausführen, nicht nur über den Nachbearbeitungs-Hotkey. Verlängert jedes Diktat um etwa eine Sekunde."
       },
       "api": {
         "title": "API (OpenAI-kompatibel)",
@@ -691,7 +699,12 @@
   },
   "overlay": {
     "transcribing": "Transkribiere...",
-    "processing": "Verarbeite..."
+    "processing": "Verarbeite...",
+    "copyLastTranscript": "Letztes Transkript kopieren",
+    "copied": "Kopiert",
+    "dismiss": "Schließen",
+    "pin": "Aufnahme fortsetzen",
+    "finish": "Fertig"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"

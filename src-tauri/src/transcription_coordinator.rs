@@ -78,9 +78,13 @@ struct Hold {
     /// under this id.
     started_by: String,
     pressed_at: Instant,
+    /// The hotkey that started this recording, so an overlay-driven finish
+    /// can stop it through the same action the key would.
+    hotkey_string: String,
     /// Recording outlives the key: the next press stops it, releases are
     /// ignored. Always set for toggle; set for hold-or-toggle once a release
-    /// has been classified as a tap.
+    /// has been classified as a tap, and for any mode once the overlay's pin
+    /// button locks the session.
     locked: bool,
 }
 
@@ -175,8 +179,14 @@ enum Effect {
 /// Commands processed sequentially by the coordinator thread.
 enum Command {
     Input(InputEvent),
-    Cancel { recording_was_active: bool },
+    Cancel {
+        recording_was_active: bool,
+    },
     ProcessingFinished,
+    /// The overlay's pin button: keep recording after the key is released.
+    Pin,
+    /// The overlay's finish button: stop recording and transcribe.
+    Finish,
 }
 
 /// Decide whether a key-up should be deferred (so auto-repeat can cancel it)
@@ -246,6 +256,24 @@ impl CoordinatorState {
     /// Deadline of the deferred release, if any — drives `recv_timeout`.
     fn grace_deadline(&self) -> Option<Instant> {
         self.pending_release.as_ref().map(|p| p.deadline)
+    }
+
+    /// Lock state of the live recording: `None` while not recording, else
+    /// whether the session outlives the key. Drives the overlay's pin/finish
+    /// button.
+    fn recording_lock(&self) -> Option<bool> {
+        match self.stage {
+            Stage::Recording(_) => self.hold.as_ref().map(|h| h.locked),
+            _ => None,
+        }
+    }
+
+    /// The hotkey that started the live recording, if any.
+    fn held_hotkey(&self) -> Option<&str> {
+        match self.stage {
+            Stage::Recording(_) => self.hold.as_ref().map(|h| h.hotkey_string.as_str()),
+            _ => None,
+        }
     }
 
     /// Whether the current session (recording, or remembered for the drain)
@@ -485,6 +513,40 @@ impl CoordinatorState {
         None
     }
 
+    /// The overlay's pin button: the user decided mid-hold to keep recording.
+    /// The session becomes locked, exactly as if it had started with a tap, so
+    /// the key's release is ignored and the next press (or the finish button)
+    /// ends it. A release already in its grace window is discarded too, so
+    /// pinning a fraction of a second after letting go still keeps recording.
+    fn on_pin(&mut self) {
+        if !matches!(self.stage, Stage::Recording(_)) {
+            debug!("Ignoring pin: not recording");
+            return;
+        }
+        if let Some(hold) = &mut self.hold {
+            debug!("Recording pinned: locked on until finished");
+            hold.locked = true;
+        }
+        self.pending_release = None;
+    }
+
+    /// The overlay's finish button: stop the live recording and transcribe it,
+    /// whatever mode started it and whether or not the key is still down.
+    fn on_finish(&mut self) -> Option<Effect> {
+        let Stage::Recording(binding_id) = &self.stage else {
+            debug!("Ignoring finish: not recording");
+            return None;
+        };
+        let binding_id = binding_id.clone();
+        let hotkey_string = self
+            .hold
+            .as_ref()
+            .map(|h| h.hotkey_string.clone())
+            .unwrap_or_default();
+        self.pending_release = None;
+        Some(self.begin_processing(binding_id, hotkey_string))
+    }
+
     fn on_cancel(&mut self, recording_was_active: bool) {
         self.pending_release = None;
         // An explicit cancel abandons any remembered start too — the user
@@ -543,6 +605,7 @@ impl CoordinatorState {
         self.hold = Some(Hold {
             started_by: binding_id.clone(),
             pressed_at,
+            hotkey_string: hotkey_string.clone(),
             locked,
         });
         Effect::Start {
@@ -599,6 +662,7 @@ impl TranscriptionCoordinator {
         thread::spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let mut state = CoordinatorState::new();
+                let mut published_lock = LockPublisher::default();
 
                 loop {
                     let cmd = if let Some(deadline) = state.grace_deadline() {
@@ -608,6 +672,7 @@ impl TranscriptionCoordinator {
                                 if let Some(effect) = state.on_grace_expired() {
                                     run_effect(&app, &mut state, effect);
                                 }
+                                published_lock.publish(&app, &state);
                                 continue;
                             }
                             Err(mpsc::RecvTimeoutError::Disconnected) => break,
@@ -633,7 +698,14 @@ impl TranscriptionCoordinator {
                                 run_effect(&app, &mut state, effect);
                             }
                         }
+                        Command::Pin => state.on_pin(),
+                        Command::Finish => {
+                            if let Some(effect) = state.on_finish() {
+                                run_effect(&app, &mut state, effect);
+                            }
+                        }
                     }
+                    published_lock.publish(&app, &state);
                 }
                 debug!("Transcription coordinator exited");
             }));
@@ -718,6 +790,55 @@ impl TranscriptionCoordinator {
     pub fn notify_processing_finished(&self) {
         if self.tx.send(Command::ProcessingFinished).is_err() {
             warn!("Transcription coordinator channel closed");
+        }
+    }
+
+    /// Keep the live recording going after its key is released (overlay pin).
+    pub fn pin_recording(&self) {
+        if self.tx.send(Command::Pin).is_err() {
+            warn!("Transcription coordinator channel closed");
+        }
+    }
+
+    /// Stop the live recording and transcribe it (overlay finish).
+    pub fn finish_recording(&self) {
+        if self.tx.send(Command::Finish).is_err() {
+            warn!("Transcription coordinator channel closed");
+        }
+    }
+}
+
+/// Publishes lock-state changes of the live recording: tells the overlay
+/// whether it is pinned (outlives the key) so it can offer pin or finish, and
+/// keeps the Space pin shortcut registered only while an unlocked hold is in
+/// progress. Runs once per change, after the effect that caused it, so the
+/// overlay event always follows the overlay's own show event for the same
+/// recording.
+#[derive(Default)]
+struct LockPublisher {
+    lock: Option<bool>,
+    /// The hotkey whose pin shortcut is currently registered.
+    pin_for: Option<String>,
+}
+
+impl LockPublisher {
+    fn publish(&mut self, app: &AppHandle, state: &CoordinatorState) {
+        let lock = state.recording_lock();
+        if lock == self.lock {
+            return;
+        }
+        self.lock = lock;
+        if let Some(pinned) = lock {
+            crate::overlay::emit_recording_pinned(app, pinned);
+        }
+        if let Some(held) = self.pin_for.take() {
+            crate::shortcut::unregister_pin_shortcut(app, &held);
+        }
+        if lock == Some(false) {
+            if let Some(held) = state.held_hotkey() {
+                crate::shortcut::register_pin_shortcut(app, held);
+                self.pin_for = Some(held.to_string());
+            }
         }
     }
 }
@@ -1433,6 +1554,138 @@ mod tests {
             matches!(state.on_grace_expired(), Some(Effect::Stop { .. })),
             "held 800ms overall: must stop, not lock"
         );
+    }
+
+    /// Overlay pin during a push-to-talk hold: the release no longer stops,
+    /// and the overlay's finish button ends the session.
+    #[test]
+    fn pin_during_hold_survives_release_and_finish_stops() {
+        let mode = ShortcutActivation::PushToTalk;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        assert!(matches!(
+            state.on_input(input(mode, true), t0),
+            Some(Effect::Start { .. })
+        ));
+        assert_eq!(state.recording_lock(), Some(false));
+
+        state.on_pin();
+        assert!(state.is_locked());
+        assert_eq!(state.recording_lock(), Some(true));
+
+        assert!(
+            state.on_input(input(mode, false), t0 + ms(2000)).is_none(),
+            "a release after pinning must not stop recording"
+        );
+        assert!(
+            state.grace_deadline().is_none(),
+            "a pinned session never defers releases"
+        );
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+
+        assert!(matches!(
+            state.on_finish(),
+            Some(Effect::Stop { hotkey_string, .. }) if hotkey_string == BINDING
+        ));
+        assert_eq!(state.stage, Stage::Processing);
+        assert_eq!(state.recording_lock(), None);
+    }
+
+    /// Overlay pin: the next shortcut press ends the pinned session, as it
+    /// does for a tap-locked one.
+    #[test]
+    fn pinned_session_stops_on_next_press() {
+        let mode = ShortcutActivation::PushToTalk;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        state.on_input(input(mode, true), t0);
+        state.on_pin();
+        assert!(state.on_input(input(mode, false), t0 + ms(500)).is_none());
+
+        assert!(matches!(
+            state.on_input(input(mode, true), t0 + ms(5000)),
+            Some(Effect::Stop { .. })
+        ));
+        assert_eq!(state.stage, Stage::Processing);
+    }
+
+    /// Overlay pin inside the release grace window: the deferred release is
+    /// discarded, so letting go just before clicking pin still keeps recording.
+    #[test]
+    fn pin_discards_deferred_release() {
+        let mode = ShortcutActivation::HoldOrToggle;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        state.on_input(input(mode, true), t0);
+        assert!(state.on_input(input(mode, false), t0 + ms(800)).is_none());
+        assert!(state.grace_deadline().is_some());
+
+        state.on_pin();
+        assert!(state.grace_deadline().is_none());
+        assert!(
+            state.on_grace_expired().is_none(),
+            "no release is left to resolve once pinned"
+        );
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+        assert!(state.is_locked());
+    }
+
+    /// Overlay finish ends a hold-or-toggle session while the key is still
+    /// down; the key's later release lands in the busy window and is ignored.
+    #[test]
+    fn finish_while_key_held_stops_and_ignores_release() {
+        let mode = ShortcutActivation::HoldOrToggle;
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+
+        state.on_input(input(mode, true), t0);
+        assert!(matches!(state.on_finish(), Some(Effect::Stop { .. })));
+        assert_eq!(state.stage, Stage::Processing);
+
+        assert!(state.on_input(input(mode, false), t0 + ms(900)).is_none());
+        assert!(state.on_grace_expired().is_none());
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(state.stage, Stage::Idle);
+    }
+
+    /// Pin and finish are no-ops outside a live recording.
+    #[test]
+    fn pin_and_finish_without_recording_are_noops() {
+        let mut state = CoordinatorState::new();
+        state.on_pin();
+        assert!(state.on_finish().is_none());
+        assert_eq!(state.stage, Stage::Idle);
+        assert!(!state.is_locked());
+        assert_eq!(state.recording_lock(), None);
+
+        drive_into_processing(&mut state, Instant::now());
+        state.on_pin();
+        assert!(state.on_finish().is_none());
+        assert_eq!(state.stage, Stage::Processing);
+        assert_eq!(state.recording_lock(), None);
+    }
+
+    /// A toggle session starts locked, so the overlay offers finish from the
+    /// first frame; a hold-or-toggle tap flips to locked once classified.
+    #[test]
+    fn recording_lock_tracks_mode_and_tap() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+        state.on_input(input(ShortcutActivation::Toggle, true), t0);
+        assert_eq!(state.recording_lock(), Some(true));
+        state.on_input(input(ShortcutActivation::Toggle, true), t0 + ms(500));
+        assert_eq!(state.recording_lock(), None);
+        state.on_processing_finished();
+
+        let mode = ShortcutActivation::HoldOrToggle;
+        state.on_input(input(mode, true), t0 + ms(2000));
+        assert_eq!(state.recording_lock(), Some(false));
+        state.on_input(input(mode, false), t0 + ms(2100));
+        assert!(state.on_grace_expired().is_none());
+        assert_eq!(state.recording_lock(), Some(true));
     }
 
     /// Toggle: releases never stop, the next press does. (Toggle is the
