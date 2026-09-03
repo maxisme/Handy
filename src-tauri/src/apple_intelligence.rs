@@ -72,6 +72,71 @@ pub fn process_text_with_system_prompt(
     result
 }
 
+// Link to the Swift function for correction-kind classification
+extern "C" {
+    pub fn check_vocabulary_apple(
+        instructions: *const c_char,
+        user_content: *const c_char,
+    ) -> *mut AppleLLMResponse;
+}
+
+/// One classified correction pair as returned by Apple Intelligence.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct KindVerdict {
+    /// The corrected text, copied from the pair the model was given.
+    pub meant: String,
+    /// Raw value of the Swift `CorrectionKind` enum, e.g. `personName`,
+    /// `productOrCompany`, `acronym`, `commonWord`, `rewording`.
+    pub kind: String,
+}
+
+/// Classify "heard -> meant" correction pairs by kind with Apple Intelligence.
+///
+/// `instructions` is the session's system instructions (the kind definitions);
+/// `user_content` lists the numbered pairs. Guided generation on the Swift side
+/// yields one verdict per pair in the order given, serialised as a JSON array of
+/// `{"meant": ..., "kind": ...}` objects, which is decoded here. Any failure —
+/// model unavailable, generation error, malformed JSON — is returned as `Err`.
+pub fn check_vocabulary(
+    instructions: &str,
+    user_content: &str,
+) -> Result<Vec<KindVerdict>, String> {
+    let instructions_cstr = CString::new(instructions).map_err(|e| e.to_string())?;
+    let user_cstr = CString::new(user_content).map_err(|e| e.to_string())?;
+
+    let response_ptr =
+        unsafe { check_vocabulary_apple(instructions_cstr.as_ptr(), user_cstr.as_ptr()) };
+
+    if response_ptr.is_null() {
+        return Err("Null response from Apple LLM".to_string());
+    }
+
+    let response = unsafe { &*response_ptr };
+
+    let result = if response.success == 1 {
+        if response.response.is_null() {
+            Ok(String::new())
+        } else {
+            let c_str = unsafe { CStr::from_ptr(response.response) };
+            Ok(c_str.to_string_lossy().into_owned())
+        }
+    } else {
+        let error_c_str = if !response.error_message.is_null() {
+            unsafe { CStr::from_ptr(response.error_message) }
+        } else {
+            c"Unknown error"
+        };
+        Err(error_c_str.to_string_lossy().into_owned())
+    };
+
+    // Clean up the response
+    unsafe { free_apple_llm_response(response_ptr) };
+
+    let json = result?;
+    serde_json::from_str::<Vec<KindVerdict>>(&json)
+        .map_err(|e| format!("Apple LLM returned malformed verdict JSON: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

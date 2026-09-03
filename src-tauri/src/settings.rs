@@ -450,6 +450,14 @@ pub struct AppSettings {
     /// `post_process_enabled` is false.
     #[serde(default)]
     pub post_process_always: bool,
+    /// Learn new custom words from the user's corrections to transcripts.
+    /// Needs a post-processing model, which makes the vocabulary judgment.
+    #[serde(default)]
+    pub learn_from_corrections: bool,
+    /// Match keys of learned words the user undid or removed. Never learned
+    /// automatically again; a manual add still works.
+    #[serde(default)]
+    pub learning_denylist: Vec<String>,
     #[serde(default = "default_post_process_provider_id")]
     pub post_process_provider_id: String,
     #[serde(default = "default_post_process_providers")]
@@ -957,6 +965,8 @@ pub fn get_default_settings() -> AppSettings {
         auto_submit_key: AutoSubmitKey::default(),
         post_process_enabled: default_post_process_enabled(),
         post_process_always: false,
+        learn_from_corrections: false,
+        learning_denylist: Vec::new(),
         post_process_provider_id: default_post_process_provider_id(),
         post_process_providers: default_post_process_providers(),
         post_process_api_keys: default_post_process_api_keys(),
@@ -1349,6 +1359,8 @@ mod tests {
             "auto_submit_key": "enter",
             "post_process_enabled": false,
             "post_process_always": false,
+            "learn_from_corrections": false,
+            "learning_denylist": [],
             "post_process_provider_id": "openai",
             "post_process_providers": [
                 {
