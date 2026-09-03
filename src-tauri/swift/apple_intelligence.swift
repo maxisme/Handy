@@ -8,6 +8,43 @@ private struct CleanedTranscript: Sendable {
     let cleanedText: String
 }
 
+@available(macOS 26.0, *)
+@Generable
+private enum CorrectionKind: String, Sendable {
+    case personName
+    case productOrCompany
+    case projectOrService
+    case acronym
+    case technicalTerm
+    case commonWord
+    case rewording
+    case grammar
+    case formatting
+}
+
+@available(macOS 26.0, *)
+@Generable
+private struct PairKindVerdict: Sendable {
+    @Guide(description: "The corrected text, copied exactly as given in the pair")
+    let meant: String
+    @Guide(description: "The kind of thing the corrected text is, using the definitions in the instructions")
+    let kind: CorrectionKind
+}
+
+@available(macOS 26.0, *)
+@Generable
+private struct KindVerdictList: Sendable {
+    @Guide(description: "Exactly one verdict per numbered pair, in the same order as the pairs")
+    let verdicts: [PairKindVerdict]
+}
+
+// Codable mirror of PairKindVerdict so the verdicts cross the C boundary as
+// JSON with stable field names; `kind` carries the enum's raw value.
+private struct KindVerdictJSON: Encodable {
+    let meant: String
+    let kind: String
+}
+
 // MARK: - Swift implementation for Apple LLM integration
 // This file is compiled via Cargo build script for Apple Silicon targets
 
@@ -113,6 +150,83 @@ public func processTextWithSystemPrompt(
                 output = truncatedText(output, limit: tokenLimit)
             }
             box.response = output
+        } catch {
+            box.error = error.localizedDescription
+        }
+    }
+
+    semaphore.wait()
+
+    // Write to responsePtr on the calling thread after task completes
+    if let response = box.response {
+        responsePtr.pointee.response = duplicateCString(response)
+        responsePtr.pointee.success = 1
+    } else {
+        responsePtr.pointee.error_message = duplicateCString(box.error ?? "Unknown error")
+    }
+
+    return responsePtr
+}
+
+@_cdecl("check_vocabulary_apple")
+public func checkVocabularyApple(
+    _ instructions: UnsafePointer<CChar>,
+    _ userContent: UnsafePointer<CChar>
+) -> UnsafeMutablePointer<AppleLLMResponse> {
+    let swiftInstructions = String(cString: instructions)
+    let swiftUserContent = String(cString: userContent)
+    let responsePtr = ResponsePointer.allocate(capacity: 1)
+    responsePtr.initialize(to: AppleLLMResponse(response: nil, success: 0, error_message: nil))
+
+    guard #available(macOS 26.0, *) else {
+        responsePtr.pointee.error_message = duplicateCString(
+            "Apple Intelligence requires macOS 26 or newer."
+        )
+        return responsePtr
+    }
+
+    let model = SystemLanguageModel.default
+    guard model.availability == .available else {
+        responsePtr.pointee.error_message = duplicateCString(
+            "Apple Intelligence is not currently available on this device."
+        )
+        return responsePtr
+    }
+
+    let semaphore = DispatchSemaphore(value: 0)
+
+    // Thread-safe container to pass results from async task back to calling thread
+    final class ResultBox: @unchecked Sendable {
+        var response: String?
+        var error: String?
+    }
+    let box = ResultBox()
+
+    Task.detached(priority: .userInitiated) {
+        defer { semaphore.signal() }
+        do {
+            let session = LanguageModelSession(
+                model: model,
+                instructions: swiftInstructions
+            )
+            // Guided generation pins the output to one verdict per pair with a
+            // kind drawn from CorrectionKind, so no free-text parsing is needed.
+            // Greedy sampling is required: with the default sampling the same
+            // pair is classified differently from one run to the next.
+            let options = GenerationOptions(sampling: .greedy)
+            let structured = try await session.respond(
+                to: swiftUserContent,
+                generating: KindVerdictList.self,
+                options: options
+            )
+            let verdicts = structured.content.verdicts.map { verdict in
+                KindVerdictJSON(meant: verdict.meant, kind: verdict.kind.rawValue)
+            }
+            let data = try JSONEncoder().encode(verdicts)
+            guard let json = String(data: data, encoding: .utf8) else {
+                throw CocoaError(.coderInvalidValue)
+            }
+            box.response = json
         } catch {
             box.error = error.localizedDescription
         }

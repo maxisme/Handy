@@ -12,6 +12,7 @@ mod copy_prompt;
 mod focus;
 mod helpers;
 mod input;
+mod learning;
 mod llm_client;
 mod managers;
 mod memory;
@@ -678,6 +679,9 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_auto_submit_key_setting,
             shortcut::change_post_process_enabled_setting,
             shortcut::change_post_process_always_setting,
+            shortcut::change_learn_from_corrections_setting,
+            commands::learning::get_learning_availability,
+            commands::learning::learn_from_correction,
             shortcut::change_experimental_enabled_setting,
             shortcut::change_post_process_base_url_setting,
             shortcut::change_post_process_api_key_setting,
