@@ -387,6 +387,20 @@
         "remove": "刪除 {{word}}",
         "duplicate": "「{{word}}」已存在"
       },
+      "learning": {
+        "label": "從更正中學習",
+        "description": "當你在歷史記錄中修正轉錄文字中的某個詞時，Handy 會將它加入自訂詞彙。由後處理模型判斷哪些變更是新詞。",
+        "local": "在這台 Mac 上處理。",
+        "cloud": "更正後的詞會傳送給 {{provider}}。",
+        "postProcessingOff": "請先開啟後處理並選擇模型。",
+        "noModel": "請先選擇後處理模型。",
+        "providerUnsupported": "此後處理供應商無法回答結構化問題，請選擇其他供應商。",
+        "appleUnavailable": "這台 Mac 無法使用 Apple Intelligence。",
+        "learnedBadge": "已學習",
+        "appsLabel": "也從其他應用程式中的更正學習",
+        "appsDescription": "貼上後，Handy 只會讀回它貼上的文字，並從你在那裡所做的修改中學習。絕不會在密碼欄位或已排除的應用程式中進行。",
+        "appsNeedsOverlay": "請先開啟懸浮窗，以便查看並復原學到的內容。"
+      },
       "voiceActivityDetection": {
         "title": "語音活動偵測",
         "description": "過濾錄音中的靜音。支援串流的模型會使用較長的 VAD 尾段；停用 VAD 則會錄製原始音訊"
@@ -475,7 +489,18 @@
       "retranscribe": "重新轉錄",
       "retranscribeError": "重新轉錄失敗，請重試。",
       "transcribing": "轉錄中...",
-      "transcriptionFailed": "轉錄失敗。您可以使用重試圖示重新轉錄。"
+      "transcriptionFailed": "轉錄失敗。您可以使用重試圖示重新轉錄。",
+      "edit": "編輯轉錄文字",
+      "saveEdit": "儲存",
+      "cancelEdit": "取消",
+      "edited": "已編輯",
+      "editError": "無法儲存編輯，請再試一次。"
+    },
+    "learning": {
+      "learnedOne": "已將 {{word}} 加入自訂詞彙",
+      "learnedMany": "已學習 {{count}} 個新詞",
+      "undo": "復原",
+      "undone": "已再次移除。這些詞不會被自動學習。"
     },
     "debug": {
       "title": "偵錯",
@@ -704,7 +729,12 @@
     "copied": "已複製",
     "dismiss": "關閉",
     "pin": "繼續錄音",
-    "finish": "完成"
+    "finish": "完成",
+    "learnedOne": "已加入 {{word}}",
+    "learnedMany": "已學習 {{count}} 個詞",
+    "undo": "復原",
+    "keep": "保留",
+    "undone": "已復原"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

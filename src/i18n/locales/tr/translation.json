@@ -387,6 +387,20 @@
         "remove": "{{word}} Kaldır",
         "duplicate": "\"{{word}}\" zaten mevcut"
       },
+      "learning": {
+        "label": "Düzeltmelerden öğren",
+        "description": "Geçmiş'te bir transkripsiyondaki bir kelimeyi düzelttiğinizde Handy onu özel kelimelerinize ekler. Hangi değişikliklerin yeni kelime olduğuna son işleme modeliniz karar verir.",
+        "local": "Bu Mac'te işlenir.",
+        "cloud": "Düzeltilen kelimeler {{provider}} adresine gönderilir.",
+        "postProcessingOff": "Önce son işlemeyi açın ve bir model seçin.",
+        "noModel": "Önce bir son işleme modeli seçin.",
+        "providerUnsupported": "Bu son işleme sağlayıcısı yapılandırılmış sorulara yanıt veremiyor. Başka bir sağlayıcı seçin.",
+        "appleUnavailable": "Apple Intelligence bu Mac'te kullanılamıyor.",
+        "learnedBadge": "öğrenildi",
+        "appsLabel": "Diğer uygulamalardaki düzeltmelerden de öğren",
+        "appsDescription": "Handy yapıştırdıktan sonra yalnızca yapıştırdığı metni geri okur ve orada değiştirdiklerinizden öğrenir. Parola alanlarında veya hariç tutulan uygulamalarda asla.",
+        "appsNeedsOverlay": "Öğrenilenleri görüp geri alabilmek için önce ekran katmanını açın."
+      },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
         "description": "Kayıtlardaki sessizliği filtreler. Akış destekli modeller daha uzun bir VAD kuyruğu kullanır; VAD devre dışı bırakıldığında ham ses kaydedilir."
@@ -475,7 +489,18 @@
       "retranscribe": "Yeniden transkribe et",
       "retranscribeError": "Yeniden transkripsiyon başarısız oldu. Lütfen tekrar deneyin.",
       "transcribing": "Transkribe ediliyor...",
-      "transcriptionFailed": "Transkripsiyon başarısız oldu. Yeniden deneme simgesini kullanarak tekrar transkribe edebilirsiniz."
+      "transcriptionFailed": "Transkripsiyon başarısız oldu. Yeniden deneme simgesini kullanarak tekrar transkribe edebilirsiniz.",
+      "edit": "Transkripsiyonu düzenle",
+      "saveEdit": "Kaydet",
+      "cancelEdit": "İptal",
+      "edited": "Düzenlendi",
+      "editError": "Düzenleme kaydedilemedi. Lütfen tekrar deneyin."
+    },
+    "learning": {
+      "learnedOne": "{{word}} özel kelimelerinize eklendi",
+      "learnedMany": "{{count}} yeni kelime öğrenildi",
+      "undo": "Geri al",
+      "undone": "Yeniden kaldırıldı. Bu kelimeler otomatik olarak öğrenilmeyecek."
     },
     "debug": {
       "title": "Hata Ayıklama",
@@ -704,7 +729,12 @@
     "copied": "Kopyalandı",
     "dismiss": "Kapat",
     "pin": "Kayda devam et",
-    "finish": "Bitir"
+    "finish": "Bitir",
+    "learnedOne": "{{word}} eklendi",
+    "learnedMany": "{{count}} kelime öğrenildi",
+    "undo": "Geri al",
+    "keep": "Sakla",
+    "undone": "Geri alındı"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

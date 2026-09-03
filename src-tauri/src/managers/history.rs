@@ -31,7 +31,35 @@ static MIGRATIONS: &[M] = &[
     M::up("ALTER TABLE transcription_history ADD COLUMN post_processed_text TEXT;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_process_prompt TEXT;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_process_requested BOOLEAN NOT NULL DEFAULT 0;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN edited_text TEXT;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN edited_at INTEGER;"),
+    M::up(
+        "CREATE TABLE IF NOT EXISTS learned_words (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            batch_id INTEGER NOT NULL,
+            heard TEXT NOT NULL,
+            meant TEXT NOT NULL,
+            source TEXT NOT NULL,
+            history_id INTEGER,
+            learned_at INTEGER NOT NULL,
+            undone BOOLEAN NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS learned_words_batch ON learned_words(batch_id);",
+    ),
 ];
+
+/// A word learned from a correction. Rows stay after an undo, marked undone,
+/// so the dictionary UI can show what was learned and when.
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+pub struct LearnedWord {
+    pub id: i64,
+    pub batch_id: i64,
+    pub heard: String,
+    pub meant: String,
+    pub source: String,
+    pub history_id: Option<i64>,
+    pub learned_at: i64,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct PaginatedHistory {
@@ -63,6 +91,10 @@ pub struct HistoryEntry {
     pub post_processed_text: Option<String>,
     pub post_process_prompt: Option<String>,
     pub post_process_requested: bool,
+    /// The user's correction of this entry, kept apart from the transcript so
+    /// a retry never overwrites it and the original stays available to diff.
+    pub edited_text: Option<String>,
+    pub edited_at: Option<i64>,
 }
 
 pub struct HistoryManager {
@@ -207,6 +239,8 @@ impl HistoryManager {
             post_processed_text: row.get("post_processed_text")?,
             post_process_prompt: row.get("post_process_prompt")?,
             post_process_requested: row.get("post_process_requested")?,
+            edited_text: row.get("edited_text")?,
+            edited_at: row.get("edited_at")?,
         })
     }
 
@@ -261,6 +295,8 @@ impl HistoryManager {
             post_processed_text,
             post_process_prompt,
             post_process_requested,
+            edited_text: None,
+            edited_at: None,
         };
 
         debug!("Saved history entry with id {}", entry.id);
@@ -308,7 +344,7 @@ impl HistoryManager {
 
         let entry = conn
             .query_row(
-                "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
                  FROM transcription_history WHERE id = ?1",
                 params![id],
                 Self::map_history_entry,
@@ -325,6 +361,123 @@ impl HistoryManager {
         }
 
         Ok(entry)
+    }
+
+    /// Store the user's correction of an entry. The transcript columns are
+    /// untouched so a retry cannot clobber the edit.
+    pub fn save_edit(&self, id: i64, edited_text: String) -> Result<HistoryEntry> {
+        let conn = self.get_connection()?;
+        let edited_at = Utc::now().timestamp();
+        let updated = conn.execute(
+            "UPDATE transcription_history SET edited_text = ?1, edited_at = ?2 WHERE id = ?3",
+            params![edited_text, edited_at, id],
+        )?;
+        if updated == 0 {
+            return Err(anyhow!("History entry {} not found", id));
+        }
+        let entry = conn.query_row(
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
+             FROM transcription_history WHERE id = ?1",
+            params![id],
+            Self::map_history_entry,
+        )?;
+        if let Err(e) = (HistoryUpdatePayload::Updated {
+            entry: entry.clone(),
+        })
+        .emit(&self.app_handle)
+        {
+            error!("Failed to emit history-updated event: {}", e);
+        }
+        Ok(entry)
+    }
+
+    /// Record one batch of learned words. Returns the batch id used for undo.
+    pub fn record_learned_batch(
+        &self,
+        pairs: &[(String, String)],
+        source: &str,
+        history_id: Option<i64>,
+    ) -> Result<i64> {
+        let conn = self.get_connection()?;
+        Self::record_learned_batch_with_conn(&conn, pairs, source, history_id)
+    }
+
+    fn record_learned_batch_with_conn(
+        conn: &Connection,
+        pairs: &[(String, String)],
+        source: &str,
+        history_id: Option<i64>,
+    ) -> Result<i64> {
+        let learned_at = Utc::now().timestamp_millis();
+        let batch_id = learned_at;
+        for (heard, meant) in pairs {
+            conn.execute(
+                "INSERT INTO learned_words (batch_id, heard, meant, source, history_id, learned_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![batch_id, heard, meant, source, history_id, learned_at],
+            )?;
+        }
+        Ok(batch_id)
+    }
+
+    /// Mark every word in a batch undone and return their spellings.
+    pub fn undo_learned_batch(&self, batch_id: i64) -> Result<Vec<String>> {
+        let conn = self.get_connection()?;
+        Self::undo_learned_batch_with_conn(&conn, batch_id)
+    }
+
+    fn undo_learned_batch_with_conn(conn: &Connection, batch_id: i64) -> Result<Vec<String>> {
+        let mut stmt = conn.prepare(
+            "SELECT meant FROM learned_words WHERE batch_id = ?1 AND undone = 0 ORDER BY id",
+        )?;
+        let words: Vec<String> = stmt
+            .query_map(params![batch_id], |row| row.get(0))?
+            .collect::<rusqlite::Result<_>>()?;
+        conn.execute(
+            "UPDATE learned_words SET undone = 1 WHERE batch_id = ?1",
+            params![batch_id],
+        )?;
+        Ok(words)
+    }
+
+    /// Mark every learned row for `word` undone (case-insensitive) and return
+    /// how many matched.
+    pub fn forget_learned_word(&self, word: &str) -> Result<usize> {
+        let conn = self.get_connection()?;
+        Self::forget_learned_word_with_conn(&conn, word)
+    }
+
+    fn forget_learned_word_with_conn(conn: &Connection, word: &str) -> Result<usize> {
+        let changed = conn.execute(
+            "UPDATE learned_words SET undone = 1 WHERE undone = 0 AND lower(meant) = lower(?1)",
+            params![word],
+        )?;
+        Ok(changed)
+    }
+
+    /// Learned words that have not been undone, newest first.
+    pub fn learned_words(&self) -> Result<Vec<LearnedWord>> {
+        let conn = self.get_connection()?;
+        Self::learned_words_with_conn(&conn)
+    }
+
+    fn learned_words_with_conn(conn: &Connection) -> Result<Vec<LearnedWord>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, batch_id, heard, meant, source, history_id, learned_at
+             FROM learned_words WHERE undone = 0 ORDER BY learned_at DESC, id DESC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(LearnedWord {
+                id: row.get("id")?,
+                batch_id: row.get("batch_id")?,
+                heard: row.get("heard")?,
+                meant: row.get("meant")?,
+                source: row.get("source")?,
+                history_id: row.get("history_id")?,
+                learned_at: row.get("learned_at")?,
+            })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
     pub fn cleanup_old_entries(&self) -> Result<()> {
@@ -459,7 +612,7 @@ impl HistoryManager {
             (Some(cursor_id), Some(lim)) => {
                 let fetch_count = (lim + 1) as i64;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
                      FROM transcription_history
                      WHERE id < ?1
                      ORDER BY id DESC
@@ -473,7 +626,7 @@ impl HistoryManager {
             (None, Some(lim)) => {
                 let fetch_count = (lim + 1) as i64;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
                      FROM transcription_history
                      ORDER BY id DESC
                      LIMIT ?1",
@@ -485,7 +638,7 @@ impl HistoryManager {
             }
             (_, None) => {
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
                      FROM transcription_history
                      ORDER BY id DESC",
                 )?;
@@ -516,7 +669,9 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
+                post_process_requested,
+             edited_text,
+             edited_at
              FROM transcription_history
              ORDER BY timestamp DESC
              LIMIT 1",
@@ -543,7 +698,9 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
+                post_process_requested,
+             edited_text,
+             edited_at
              FROM transcription_history
              WHERE transcription_text != ''
              ORDER BY timestamp DESC
@@ -597,7 +754,9 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
+                post_process_requested,
+             edited_text,
+             edited_at
              FROM transcription_history
              WHERE id = ?1",
         )?;
@@ -666,11 +825,67 @@ mod tests {
                 transcription_text TEXT NOT NULL,
                 post_processed_text TEXT,
                 post_process_prompt TEXT,
-                post_process_requested BOOLEAN NOT NULL DEFAULT 0
+                post_process_requested BOOLEAN NOT NULL DEFAULT 0,
+                edited_text TEXT,
+                edited_at INTEGER
+            );
+            CREATE TABLE learned_words (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                batch_id INTEGER NOT NULL,
+                heard TEXT NOT NULL,
+                meant TEXT NOT NULL,
+                source TEXT NOT NULL,
+                history_id INTEGER,
+                learned_at INTEGER NOT NULL,
+                undone BOOLEAN NOT NULL DEFAULT 0
             );",
         )
-        .expect("create transcription_history table");
+        .expect("create tables");
         conn
+    }
+
+    #[test]
+    fn learned_batches_can_be_undone_and_listed() {
+        let conn = setup_conn();
+        let pairs = vec![
+            ("Charge B".to_string(), "ChargeBee".to_string()),
+            ("by frost".to_string(), "Bifrost".to_string()),
+        ];
+        let batch =
+            HistoryManager::record_learned_batch_with_conn(&conn, &pairs, "history", Some(7))
+                .expect("record");
+        let listed = HistoryManager::learned_words_with_conn(&conn).expect("list");
+        assert_eq!(listed.len(), 2);
+        assert_eq!(listed[0].history_id, Some(7));
+        assert!(listed.iter().all(|w| w.batch_id == batch));
+
+        let undone = HistoryManager::undo_learned_batch_with_conn(&conn, batch).expect("undo");
+        assert_eq!(undone, vec!["ChargeBee".to_string(), "Bifrost".to_string()]);
+        assert!(HistoryManager::learned_words_with_conn(&conn)
+            .expect("list")
+            .is_empty());
+        assert!(HistoryManager::undo_learned_batch_with_conn(&conn, batch)
+            .expect("undo again")
+            .is_empty());
+    }
+
+    #[test]
+    fn forgetting_a_word_is_case_insensitive_and_reports_matches() {
+        let conn = setup_conn();
+        let pairs = vec![("k8s".to_string(), "Kubernetes".to_string())];
+        HistoryManager::record_learned_batch_with_conn(&conn, &pairs, "history", None)
+            .expect("record");
+        assert_eq!(
+            HistoryManager::forget_learned_word_with_conn(&conn, "kubernetes").expect("forget"),
+            1
+        );
+        assert_eq!(
+            HistoryManager::forget_learned_word_with_conn(&conn, "kubernetes").expect("forget"),
+            0
+        );
+        assert!(HistoryManager::learned_words_with_conn(&conn)
+            .expect("list")
+            .is_empty());
     }
 
     fn insert_entry(conn: &Connection, timestamp: i64, text: &str, post_processed: Option<&str>) {

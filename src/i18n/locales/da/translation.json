@@ -387,6 +387,20 @@
         "remove": "Fjern {{word}}",
         "duplicate": "\"{{word}}\" findes allerede"
       },
+      "learning": {
+        "label": "Lær af rettelser",
+        "description": "Når du retter et ord i en transskription under Historik, føjer Handy det til dine egne ord. Din efterbehandlingsmodel afgør, hvilke ændringer der er nye ord.",
+        "local": "Behandles på denne Mac.",
+        "cloud": "Rettede ord sendes til {{provider}}.",
+        "postProcessingOff": "Slå efterbehandling til og vælg en model først.",
+        "noModel": "Vælg en efterbehandlingsmodel først.",
+        "providerUnsupported": "Denne efterbehandlingsudbyder kan ikke besvare strukturerede spørgsmål. Vælg en anden udbyder.",
+        "appleUnavailable": "Apple Intelligence er ikke tilgængelig på denne Mac.",
+        "learnedBadge": "lært",
+        "appsLabel": "Lær også af rettelser i andre apps",
+        "appsDescription": "Når Handy har indsat tekst, læser den kun den indsatte tekst tilbage og lærer af det, du ændrer der. Aldrig i adgangskodefelter eller udelukkede apps.",
+        "appsNeedsOverlay": "Slå overlayet til først, så du kan se og fortryde det, der blev lært."
+      },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
         "description": "Filtrer stilhed fra optagelser. Streaming-modeller bruger en længere VAD-hale; deaktivering af VAD optager rå lyd."
@@ -475,7 +489,18 @@
       "retranscribe": "Transskribér igen",
       "retranscribeError": "Kunne ikke transskribere igen. Prøv igen.",
       "transcribing": "Transskriberer...",
-      "transcriptionFailed": "Transskription mislykkedes. Du kan transskribere igen ved hjælp af genforsøgsikonet."
+      "transcriptionFailed": "Transskription mislykkedes. Du kan transskribere igen ved hjælp af genforsøgsikonet.",
+      "edit": "Rediger transskription",
+      "saveEdit": "Gem",
+      "cancelEdit": "Annuller",
+      "edited": "Redigeret",
+      "editError": "Ændringen kunne ikke gemmes. Prøv igen."
+    },
+    "learning": {
+      "learnedOne": "{{word}} blev føjet til dine egne ord",
+      "learnedMany": "Lærte {{count}} nye ord",
+      "undo": "Fortryd",
+      "undone": "Fjernet igen. De ord bliver ikke lært automatisk."
     },
     "debug": {
       "title": "Fejlfinding",
@@ -707,7 +732,12 @@
     "copied": "Kopieret",
     "dismiss": "Luk",
     "pin": "Fortsæt optagelse",
-    "finish": "Færdig"
+    "finish": "Færdig",
+    "learnedOne": "Tilføjede {{word}}",
+    "learnedMany": "Lærte {{count}} ord",
+    "undo": "Fortryd",
+    "keep": "Behold",
+    "undone": "Fortrudt"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",

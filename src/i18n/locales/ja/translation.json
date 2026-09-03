@@ -387,6 +387,20 @@
         "remove": "{{word}}を削除",
         "duplicate": "「{{word}}」は既に存在します"
       },
+      "learning": {
+        "label": "修正から学習する",
+        "description": "履歴で文字起こしの単語を修正すると、Handy がそれをカスタム単語に追加します。どの変更が新しい単語かは後処理モデルが判断します。",
+        "local": "この Mac 上で処理されます。",
+        "cloud": "修正した単語は {{provider}} に送信されます。",
+        "postProcessingOff": "先に後処理をオンにしてモデルを選択してください。",
+        "noModel": "先に後処理モデルを選択してください。",
+        "providerUnsupported": "この後処理プロバイダーは構造化された質問に応答できません。別のプロバイダーを選択してください。",
+        "appleUnavailable": "この Mac では Apple Intelligence を利用できません。",
+        "learnedBadge": "学習済み",
+        "appsLabel": "他のアプリでの修正からも学習する",
+        "appsDescription": "貼り付け後、Handy は貼り付けたテキストだけを読み戻し、そこでの変更から学習します。パスワード欄や除外したアプリでは行いません。",
+        "appsNeedsOverlay": "学習した内容を確認して元に戻せるよう、先にオーバーレイをオンにしてください。"
+      },
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",
         "description": "録音から無音部分を除去します。ストリーミング対応モデルはより長い音声検出区間を使用します。VAD を無効にすると音声をそのまま録音します。"
@@ -475,7 +489,18 @@
       "retranscribe": "再文字起こし",
       "retranscribeError": "再文字起こしに失敗しました。もう一度お試しください。",
       "transcribing": "文字起こし中…",
-      "transcriptionFailed": "文字起こしに失敗しました。リトライアイコンを使用して再文字起こしできます。"
+      "transcriptionFailed": "文字起こしに失敗しました。リトライアイコンを使用して再文字起こしできます。",
+      "edit": "文字起こしを編集",
+      "saveEdit": "保存",
+      "cancelEdit": "キャンセル",
+      "edited": "編集済み",
+      "editError": "編集を保存できませんでした。もう一度お試しください。"
+    },
+    "learning": {
+      "learnedOne": "{{word}} をカスタム単語に追加しました",
+      "learnedMany": "{{count}} 個の新しい単語を学習しました",
+      "undo": "元に戻す",
+      "undone": "再び削除しました。これらの単語は自動的に学習されません。"
     },
     "debug": {
       "title": "デバッグ",
@@ -704,7 +729,12 @@
     "copied": "コピーしました",
     "dismiss": "閉じる",
     "pin": "録音を続ける",
-    "finish": "完了"
+    "finish": "完了",
+    "learnedOne": "{{word}} を追加しました",
+    "learnedMany": "{{count}} 個の単語を学習しました",
+    "undo": "元に戻す",
+    "keep": "保持",
+    "undone": "元に戻しました"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

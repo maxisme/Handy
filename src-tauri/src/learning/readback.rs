@@ -1,0 +1,414 @@
+//! Learning from corrections made in the app Handy pasted into.
+//!
+//! Right after a paste lands, the focused text field is captured through the
+//! accessibility layer along with the text before and after the pasted span.
+//! The field is polled until focus leaves it, a new recording starts, or a
+//! time limit passes; the span between the same anchors is then diffed against
+//! what was pasted, and the learning engine decides what, if anything, to add.
+//! Text outside the anchors is never inspected. Every failure is silent: the
+//! user asked for dictation, not for a lecture about accessibility.
+
+/// What surrounded the pasted text when it was captured.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PasteSnapshot {
+    pub prefix: String,
+    pub pasted: String,
+    pub suffix: String,
+}
+
+/// Byte offset in `text` of the character at UTF-16 offset `utf16`, clamped
+/// to the end of the string.
+fn byte_index_for_utf16(text: &str, utf16: usize) -> usize {
+    let mut units = 0;
+    for (byte, ch) in text.char_indices() {
+        if units >= utf16 {
+            return byte;
+        }
+        units += ch.len_utf16();
+    }
+    text.len()
+}
+
+/// Locate `pasted` in `value`. When the caret position is known the occurrence
+/// ending nearest before it wins, since the caret sits at the end of a fresh
+/// paste; otherwise the last occurrence. A trailing-space variant of the paste
+/// is tried too, because Handy can append one on paste.
+pub fn snapshot(value: &str, pasted: &str, caret_utf16: Option<usize>) -> Option<PasteSnapshot> {
+    let needle = if value.contains(pasted) {
+        pasted
+    } else {
+        pasted.trim_end()
+    };
+    if needle.is_empty() {
+        return None;
+    }
+    let caret = caret_utf16.map(|c| byte_index_for_utf16(value, c));
+    let mut best: Option<usize> = None;
+    let mut from = 0;
+    while let Some(pos) = value[from..].find(needle) {
+        let start = from + pos;
+        let end = start + needle.len();
+        match caret {
+            Some(c) if end <= c => best = Some(start),
+            Some(_) => {
+                if best.is_none() {
+                    best = Some(start);
+                }
+                break;
+            }
+            None => best = Some(start),
+        }
+        from = end;
+    }
+    let start = best?;
+    let end = start + needle.len();
+    Some(PasteSnapshot {
+        prefix: value[..start].to_string(),
+        pasted: needle.to_string(),
+        suffix: value[end..].to_string(),
+    })
+}
+
+/// The text now sitting between the snapshot's anchors, or `None` when the
+/// anchors no longer match: the user edited outside the pasted span, and
+/// nothing inside it can be trusted.
+pub fn current_span(value: &str, snap: &PasteSnapshot) -> Option<String> {
+    let inner = value.strip_prefix(snap.prefix.as_str())?;
+    let inner = inner.strip_suffix(snap.suffix.as_str())?;
+    Some(inner.to_string())
+}
+
+/// True when `next` keeps none of the words in `prev`. Between two polls a
+/// quarter of a second apart a person cannot retype a field from scratch, so
+/// this marks a submit, a clear, or a toolkit showing its placeholder as the
+/// value.
+pub fn replaced_wholesale(prev: &str, next: &str) -> bool {
+    let words = |text: &str| {
+        text.split_whitespace()
+            .map(|w| {
+                w.trim_matches(|c: char| !c.is_alphanumeric())
+                    .to_lowercase()
+            })
+            .filter(|w| !w.is_empty())
+            .collect::<std::collections::HashSet<_>>()
+    };
+    let prev = words(prev);
+    !prev.is_empty() && prev.is_disjoint(&words(next))
+}
+
+/// Largest field the read-back will look at.
+pub const MAX_FIELD_BYTES: usize = 200_000;
+
+#[cfg(target_os = "macos")]
+pub use session::{finish_now, start};
+
+#[cfg(not(target_os = "macos"))]
+pub fn start(_app: &tauri::AppHandle, _pasted: String, _history_id: Option<i64>) {}
+
+#[cfg(not(target_os = "macos"))]
+pub fn finish_now() {}
+
+#[cfg(target_os = "macos")]
+mod session {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
+
+    use log::{debug, info};
+    use tauri::AppHandle;
+
+    use super::{current_span, replaced_wholesale, snapshot, MAX_FIELD_BYTES};
+    use crate::commands::learning::learn_from_readback;
+    use crate::focus::FocusedTextField;
+    use crate::learning::{availability, toast, Availability};
+    use crate::secure_input;
+    use crate::settings::{get_settings, OverlayStyle};
+
+    /// Time for the paste to land before the field is first read.
+    const SETTLE: Duration = Duration::from_millis(400);
+    /// Web and Electron fields update their accessibility text lazily, so the
+    /// pasted span is looked for repeatedly before giving up.
+    const CAPTURE_ATTEMPTS: u32 = 8;
+    const CAPTURE_RETRY: Duration = Duration::from_millis(300);
+    /// How often the field is re-read while it has focus. Each read is kept,
+    /// because some apps (Chrome) drop the element the moment focus leaves.
+    const POLL: Duration = Duration::from_millis(250);
+    /// Longest a session waits for focus to leave the field.
+    const LIMIT: Duration = Duration::from_secs(90);
+
+    /// Stop flag of the session in progress, if any.
+    static ACTIVE: Mutex<Option<Arc<AtomicBool>>> = Mutex::new(None);
+
+    fn replace_active(flag: Option<Arc<AtomicBool>>) {
+        if let Ok(mut slot) = ACTIVE.lock() {
+            if let Some(previous) = slot.replace(flag.unwrap_or_default()) {
+                previous.store(true, Ordering::SeqCst);
+            }
+        }
+    }
+
+    /// Ask the running session, if any, to take its final reading now. Called
+    /// when a new recording starts so the toast never competes with it.
+    pub fn finish_now() {
+        replace_active(None);
+    }
+
+    /// Begin watching the focused field for corrections to `pasted`.
+    pub fn start(app: &AppHandle, pasted: String, history_id: Option<i64>) {
+        let settings = get_settings(app);
+        if !settings.learn_from_corrections || !settings.auto_learn_from_apps {
+            return;
+        }
+        if settings.overlay_style == OverlayStyle::None {
+            debug!("readback: overlay is off, not watching");
+            return;
+        }
+        if !matches!(availability(&settings), Availability::Ready { .. }) {
+            debug!("readback: no model ready, not watching");
+            return;
+        }
+        if secure_input::is_enabled_now() {
+            debug!("readback: secure input is on, not watching");
+            return;
+        }
+        let denylist = settings.auto_learn_app_denylist.clone();
+        let stop = Arc::new(AtomicBool::new(false));
+        replace_active(Some(Arc::clone(&stop)));
+        let app = app.clone();
+        std::thread::Builder::new()
+            .name("readback".into())
+            .spawn(move || run(app, pasted, history_id, denylist, stop))
+            .ok();
+    }
+
+    fn run(
+        app: AppHandle,
+        pasted: String,
+        history_id: Option<i64>,
+        denylist: Vec<String>,
+        stop: Arc<AtomicBool>,
+    ) {
+        std::thread::sleep(SETTLE);
+        let Some(field) = FocusedTextField::capture() else {
+            debug!("readback: no readable text field has focus");
+            return;
+        };
+        if let Some(bundle) = field.bundle_id() {
+            if denylist.iter().any(|d| d.eq_ignore_ascii_case(&bundle)) {
+                debug!("readback: {bundle} is excluded");
+                return;
+            }
+        }
+        let mut snap = None;
+        for attempt in 0..CAPTURE_ATTEMPTS {
+            if attempt > 0 {
+                std::thread::sleep(CAPTURE_RETRY);
+            }
+            if stop.load(Ordering::SeqCst) {
+                return;
+            }
+            let Some(value) = field.value() else {
+                continue;
+            };
+            if value.len() > MAX_FIELD_BYTES {
+                debug!("readback: field too large ({} bytes)", value.len());
+                return;
+            }
+            let caret = field.selection_utf16().map(|(loc, len)| loc + len);
+            if let Some(found) = snapshot(&value, &pasted, caret) {
+                snap = Some(found);
+                break;
+            }
+        }
+        let Some(snap) = snap else {
+            debug!(
+                "readback: pasted text not found in the field after {} attempts",
+                CAPTURE_ATTEMPTS
+            );
+            return;
+        };
+        debug!(
+            "readback: watching a {}-char span in {} (pid {})",
+            snap.pasted.chars().count(),
+            field.bundle_id().unwrap_or_default(),
+            field.pid().unwrap_or_default()
+        );
+
+        let started = Instant::now();
+        let placeholder = field.placeholder();
+        let cleared = |value: &str| {
+            let value = value.trim();
+            value.is_empty() || placeholder.as_deref().is_some_and(|p| p.trim() == value)
+        };
+        // The most recent poll in which the text around the paste was still
+        // intact. Sending a chat message or submitting a form empties the
+        // field between polls, so the edit has to be taken from this value.
+        let mut last_span: Option<String> = None;
+        let mut changed = false;
+        while started.elapsed() < LIMIT && !stop.load(Ordering::SeqCst) {
+            std::thread::sleep(POLL);
+            if let Some(value) = field.value() {
+                if cleared(&value) {
+                    debug!("readback: field was cleared or submitted");
+                    break;
+                }
+                match current_span(&value, &snap) {
+                    Some(span)
+                        if last_span
+                            .as_deref()
+                            .is_some_and(|p| replaced_wholesale(p, &span)) =>
+                    {
+                        debug!("readback: span replaced wholesale, treating as submitted");
+                        break;
+                    }
+                    Some(span) => {
+                        if !changed && span != snap.pasted {
+                            changed = true;
+                            debug!("readback: span edited while watching");
+                        }
+                        last_span = Some(span);
+                    }
+                    None if last_span.is_some() => {
+                        debug!("readback: text around the paste changed");
+                        break;
+                    }
+                    None => {}
+                }
+            }
+            if !field.is_focused() {
+                debug!("readback: focus left the field");
+                break;
+            }
+        }
+
+        // One more read after the loop: apps that keep the element alive give
+        // the text as it was left; apps that drop it, or that emptied the
+        // field on submit, fall back to the last poll that still had the span.
+        let final_span = field
+            .value()
+            .filter(|v| !cleared(v))
+            .and_then(|v| current_span(&v, &snap))
+            .filter(|span| {
+                !last_span
+                    .as_deref()
+                    .is_some_and(|p| replaced_wholesale(p, span))
+            });
+        let edited = match final_span.or(last_span) {
+            Some(span) => span,
+            None => {
+                debug!("readback: pasted span was never readable after the paste");
+                return;
+            }
+        };
+        if edited.trim() == snap.pasted.trim() {
+            debug!("readback: span unchanged");
+            return;
+        }
+        let original = snap.pasted.clone();
+        tauri::async_runtime::spawn(async move {
+            match learn_from_readback(&app, &original, &edited, history_id).await {
+                Ok(Some((batch_id, words))) => {
+                    info!("readback: learned {} word(s)", words.len());
+                    toast::offer(&app, batch_id, words);
+                }
+                Ok(None) => debug!("readback: nothing learned"),
+                Err(err) => debug!("readback: learning failed: {err}"),
+            }
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn placeholder_after_send_counts_as_wholesale_replacement() {
+        assert!(super::replaced_wholesale(
+            "Zentryx is the new staging cluster",
+            "Type / for commands"
+        ));
+        assert!(super::replaced_wholesale(
+            "Zentryx is the new staging cluster",
+            ""
+        ));
+    }
+
+    #[test]
+    fn edits_that_keep_any_word_are_not_wholesale() {
+        assert!(!super::replaced_wholesale(
+            "Zentrix is the new staging cluster",
+            "Zentryx is the new staging cluster"
+        ));
+        assert!(!super::replaced_wholesale("cluster", "Cluster."));
+    }
+
+    #[test]
+    fn nothing_replaces_an_empty_previous_value() {
+        assert!(!super::replaced_wholesale("", "Type / for commands"));
+    }
+
+    use super::*;
+
+    #[test]
+    fn snapshot_anchors_around_the_paste_at_the_caret() {
+        let value = "Intro. We moved billing to Charge B last week. Outro.";
+        let pasted = "We moved billing to Charge B last week.";
+        let caret = "Intro. We moved billing to Charge B last week."
+            .encode_utf16()
+            .count();
+        let snap = snapshot(value, pasted, Some(caret)).unwrap();
+        assert_eq!(snap.prefix, "Intro. ");
+        assert_eq!(snap.pasted, pasted);
+        assert_eq!(snap.suffix, " Outro.");
+    }
+
+    #[test]
+    fn snapshot_prefers_the_occurrence_ending_at_the_caret() {
+        let value = "hello hello hello";
+        let caret = "hello hello".encode_utf16().count();
+        let snap = snapshot(value, "hello", Some(caret)).unwrap();
+        assert_eq!(snap.prefix, "hello ");
+        assert_eq!(snap.suffix, " hello");
+        let snap = snapshot(value, "hello", None).unwrap();
+        assert_eq!(snap.prefix, "hello hello ");
+    }
+
+    #[test]
+    fn snapshot_tolerates_a_trailing_space_that_did_not_land() {
+        let snap = snapshot("Say ChargeBee", "Say ChargeBee ", None).unwrap();
+        assert_eq!(snap.pasted, "Say ChargeBee");
+        assert!(snapshot("nothing here", "absent", None).is_none());
+    }
+
+    #[test]
+    fn snapshot_handles_multibyte_text_before_the_caret() {
+        let value = "Résumé — naïve café: Charge B now";
+        let caret = value.encode_utf16().count();
+        let snap = snapshot(value, "Charge B now", Some(caret)).unwrap();
+        assert_eq!(snap.prefix, "Résumé — naïve café: ");
+    }
+
+    #[test]
+    fn current_span_follows_edits_inside_the_anchors_only() {
+        let snap = snapshot("A. Charge B here. Z.", "Charge B here.", None).unwrap();
+        assert_eq!(
+            current_span("A. ChargeBee here. Z.", &snap).as_deref(),
+            Some("ChargeBee here.")
+        );
+        assert_eq!(
+            current_span("A. ChargeBee here. Z. More typed.", &snap),
+            None
+        );
+        assert_eq!(current_span("Changed. ChargeBee here. Z.", &snap), None);
+        assert_eq!(current_span("A.  Z.", &snap).as_deref(), Some(""));
+        assert_eq!(current_span("A. Z.", &snap), None);
+    }
+
+    #[test]
+    fn current_span_with_an_empty_suffix_includes_text_typed_after() {
+        let snap = snapshot("A. Charge B here.", "Charge B here.", None).unwrap();
+        assert_eq!(
+            current_span("A. ChargeBee here. And more.", &snap).as_deref(),
+            Some("ChargeBee here. And more.")
+        );
+    }
+}

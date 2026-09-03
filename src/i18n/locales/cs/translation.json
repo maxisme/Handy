@@ -387,6 +387,20 @@
         "remove": "Odebrat {{word}}",
         "duplicate": "\"{{word}}\" již existuje"
       },
+      "learning": {
+        "label": "Učit se z oprav",
+        "description": "Když v Historii opravíte slovo v přepisu, Handy ho přidá mezi vaše vlastní slova. Model pro následné zpracování rozhoduje, které změny jsou nová slova.",
+        "local": "Zpracováno na tomto Macu.",
+        "cloud": "Opravená slova se odesílají do {{provider}}.",
+        "postProcessingOff": "Nejprve zapněte následné zpracování a vyberte model.",
+        "noModel": "Nejprve vyberte model pro následné zpracování.",
+        "providerUnsupported": "Tento poskytovatel následného zpracování neumí odpovídat na strukturované dotazy. Vyberte jiného poskytovatele.",
+        "appleUnavailable": "Apple Intelligence není na tomto Macu k dispozici.",
+        "learnedBadge": "naučeno",
+        "appsLabel": "Učit se také z oprav v jiných aplikacích",
+        "appsDescription": "Po vložení Handy zpětně přečte pouze vložený text a učí se z toho, co v něm změníte. Nikdy v polích pro hesla ani ve vyloučených aplikacích.",
+        "appsNeedsOverlay": "Nejprve zapněte překryv, abyste viděli, co se naučilo, a mohli to vrátit."
+      },
       "voiceActivityDetection": {
         "title": "Detekce hlasové aktivity",
         "description": "Odfiltruje ticho z nahrávek. Modely podporující streaming používají delší doběh VAD; vypnutí VAD nahrává surový zvuk."
@@ -475,7 +489,18 @@
       "retranscribe": "Přepsat znovu",
       "retranscribeError": "Opětovný přepis se nezdařil. Zkuste to prosím znovu.",
       "transcribing": "Přepisuji...",
-      "transcriptionFailed": "Přepis selhal. Můžete zkusit přepis znovu pomocí ikony opakování."
+      "transcriptionFailed": "Přepis selhal. Můžete zkusit přepis znovu pomocí ikony opakování.",
+      "edit": "Upravit přepis",
+      "saveEdit": "Uložit",
+      "cancelEdit": "Zrušit",
+      "edited": "Upraveno",
+      "editError": "Úpravu se nepodařilo uložit. Zkuste to znovu."
+    },
+    "learning": {
+      "learnedOne": "Slovo {{word}} bylo přidáno mezi vaše vlastní slova",
+      "learnedMany": "Naučeno {{count}} nových slov",
+      "undo": "Vrátit",
+      "undone": "Znovu odebráno. Tato slova se nebudou učit automaticky."
     },
     "debug": {
       "title": "Ladění",
@@ -704,7 +729,12 @@
     "copied": "Zkopírováno",
     "dismiss": "Zavřít",
     "pin": "Pokračovat v nahrávání",
-    "finish": "Dokončit"
+    "finish": "Dokončit",
+    "learnedOne": "Přidáno {{word}}",
+    "learnedMany": "Naučeno {{count}} slov",
+    "undo": "Vrátit",
+    "keep": "Ponechat",
+    "undone": "Vráceno"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

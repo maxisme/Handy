@@ -387,6 +387,20 @@
         "remove": "Supprimer {{word}}",
         "duplicate": "\"{{word}}\" existe déjà"
       },
+      "learning": {
+        "label": "Apprendre des corrections",
+        "description": "Lorsque vous corrigez un mot d'une transcription dans l'Historique, Handy l'ajoute à vos mots personnalisés. Votre modèle de post-traitement décide quelles modifications sont de nouveaux mots.",
+        "local": "Traité sur ce Mac.",
+        "cloud": "Les mots corrigés sont envoyés à {{provider}}.",
+        "postProcessingOff": "Activez d'abord le post-traitement et choisissez un modèle.",
+        "noModel": "Choisissez d'abord un modèle de post-traitement.",
+        "providerUnsupported": "Ce fournisseur de post-traitement ne peut pas répondre à des questions structurées. Choisissez un autre fournisseur.",
+        "appleUnavailable": "Apple Intelligence n'est pas disponible sur ce Mac.",
+        "learnedBadge": "appris",
+        "appsLabel": "Apprendre aussi des corrections dans d'autres applications",
+        "appsDescription": "Après avoir collé, Handy relit uniquement le texte qu'il a collé et apprend de ce que vous y modifiez. Jamais dans les champs de mot de passe ni dans les applications exclues.",
+        "appsNeedsOverlay": "Activez d'abord l'overlay pour voir et annuler ce qui a été appris."
+      },
       "voiceActivityDetection": {
         "title": "Détection d'activité vocale (VAD)",
         "description": "Filtre le silence des enregistrements. Les modèles compatibles avec le streaming utilisent une marge de détection VAD plus longue ; désactiver le VAD enregistre l'audio brut."
@@ -475,7 +489,18 @@
       "retranscribe": "Re-transcrire",
       "retranscribeError": "Impossible de re-transcrire. Veuillez réessayer.",
       "transcribing": "Transcription en cours...",
-      "transcriptionFailed": "La transcription a échoué. Vous pouvez re-transcrire en utilisant l'icône de réessai."
+      "transcriptionFailed": "La transcription a échoué. Vous pouvez re-transcrire en utilisant l'icône de réessai.",
+      "edit": "Modifier la transcription",
+      "saveEdit": "Enregistrer",
+      "cancelEdit": "Annuler",
+      "edited": "Modifiée",
+      "editError": "Impossible d'enregistrer la modification. Veuillez réessayer."
+    },
+    "learning": {
+      "learnedOne": "{{word}} a été ajouté à vos mots personnalisés",
+      "learnedMany": "{{count}} nouveaux mots appris",
+      "undo": "Annuler",
+      "undone": "Retirés à nouveau. Ces mots ne seront pas appris automatiquement."
     },
     "debug": {
       "title": "Débogage",
@@ -704,7 +729,12 @@
     "copied": "Copié",
     "dismiss": "Fermer",
     "pin": "Continuer l'enregistrement",
-    "finish": "Terminer"
+    "finish": "Terminer",
+    "learnedOne": "{{word}} ajouté",
+    "learnedMany": "{{count}} mots appris",
+    "undo": "Annuler",
+    "keep": "Garder",
+    "undone": "Annulé"
   },
   "whatsNew": {
     "title": "Nouveautés de Handy v{{version}}"
