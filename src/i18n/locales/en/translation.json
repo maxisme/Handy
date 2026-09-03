@@ -387,6 +387,17 @@
         "remove": "Remove {{word}}",
         "duplicate": "\"{{word}}\" already exists"
       },
+      "learning": {
+        "label": "Learn from corrections",
+        "description": "When you fix a word in a transcription in History, Handy adds it to your custom words. Uses your post-processing model to decide which changes are new words.",
+        "local": "Processed on this Mac.",
+        "cloud": "Corrected words are sent to {{provider}}.",
+        "postProcessingOff": "Turn on post-processing and choose a model first.",
+        "noModel": "Choose a post-processing model first.",
+        "providerUnsupported": "This post-processing provider cannot answer structured questions. Choose another provider.",
+        "appleUnavailable": "Apple Intelligence is not available on this Mac.",
+        "learnedBadge": "learned"
+      },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
         "description": "Filter silence from recordings. Streaming-capable models use a longer VAD tail; disabling VAD records raw audio."
@@ -475,7 +486,18 @@
       "retranscribe": "Re-transcribe",
       "retranscribeError": "Failed to re-transcribe. Please try again.",
       "transcribing": "Transcribing...",
-      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon."
+      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon.",
+      "edit": "Edit transcription",
+      "saveEdit": "Save",
+      "cancelEdit": "Cancel",
+      "edited": "Edited",
+      "editError": "Failed to save the edit. Please try again."
+    },
+    "learning": {
+      "learnedOne": "Added {{word}} to your custom words",
+      "learnedMany": "Learned {{count}} new words",
+      "undo": "Undo",
+      "undone": "Removed again. Those words will not be learned automatically."
     },
     "debug": {
       "title": "Debug",

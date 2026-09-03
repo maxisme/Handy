@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { readFile } from "@tauri-apps/plugin-fs";
-import { Check, Copy, FolderOpen, RotateCcw, Star, Trash2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  FolderOpen,
+  Pencil,
+  RotateCcw,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -14,6 +22,7 @@ import { useOsType } from "@/hooks/useOsType";
 import { formatDateTime } from "@/utils/dateFormat";
 import { AudioPlayer, AudioPlayerGroup } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
+import { Textarea } from "../../ui/Textarea";
 
 const IconButton: React.FC<{
   onClick: () => void;
@@ -216,6 +225,10 @@ export const HistorySettings: React.FC = () => {
     }
   };
 
+  const replaceEntry = useCallback((entry: HistoryEntry) => {
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? entry : e)));
+  }, []);
+
   const retryHistoryEntry = async (id: number) => {
     const result = await commands.retryHistoryEntryTranscription(id);
     if (result.status !== "ok") {
@@ -258,7 +271,14 @@ export const HistorySettings: React.FC = () => {
                 key={entry.id}
                 entry={entry}
                 onToggleSaved={() => toggleSaved(entry.id)}
-                onCopyText={() => copyToClipboard(entry.transcription_text)}
+                onCopyText={() =>
+                  copyToClipboard(
+                    entry.edited_text ??
+                      entry.post_processed_text ??
+                      entry.transcription_text,
+                  )
+                }
+                onEntryUpdated={replaceEntry}
                 getAudioUrl={getAudioUrl}
                 deleteAudio={deleteAudioEntry}
                 retryTranscription={retryHistoryEntry}
@@ -298,6 +318,7 @@ interface HistoryEntryProps {
   entry: HistoryEntry;
   onToggleSaved: () => void;
   onCopyText: () => void;
+  onEntryUpdated: (entry: HistoryEntry) => void;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
   retryTranscription: (id: number) => Promise<void>;
@@ -307,15 +328,27 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   entry,
   onToggleSaved,
   onCopyText,
+  onEntryUpdated,
   getAudioUrl,
   deleteAudio,
   retryTranscription,
 }) => {
   const { t, i18n } = useTranslation();
+  const osType = useOsType();
   const [showCopied, setShowCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const hasTranscription = entry.transcription_text.trim().length > 0;
+  const displayText =
+    entry.edited_text ?? entry.post_processed_text ?? entry.transcription_text;
+  const editSource =
+    entry.edited_text ?? entry.post_processed_text ?? entry.transcription_text;
+  const trimmedDraft = draft.trim();
+  const canSave =
+    !saving && trimmedDraft.length > 0 && trimmedDraft !== editSource.trim();
 
   const handleLoadAudio = useCallback(
     () => getAudioUrl(entry.file_name),
@@ -341,6 +374,68 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
     }
   };
 
+  const startEditing = () => {
+    setDraft(editSource);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setDraft("");
+  };
+
+  const saveEdit = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    try {
+      const result = await commands.saveHistoryEdit(entry.id, trimmedDraft);
+      if (result.status !== "ok") {
+        throw new Error(String(result.error));
+      }
+      const { entry: updated, learned, batch_id } = result.data;
+      onEntryUpdated(updated);
+      setEditing(false);
+      setDraft("");
+      if (learned.length > 0) {
+        const title =
+          learned.length === 1
+            ? t("settings.learning.learnedOne", { word: learned[0] })
+            : t("settings.learning.learnedMany", { count: learned.length });
+        toast(title, {
+          duration: 8000,
+          action:
+            batch_id === null
+              ? undefined
+              : {
+                  label: t("settings.learning.undo"),
+                  onClick: async () => {
+                    await commands.undoLearnedBatch(batch_id);
+                    toast(t("settings.learning.undone"));
+                  },
+                },
+        });
+      }
+    } catch (error) {
+      console.error("Failed to save edit:", error);
+      toast.error(t("settings.history.editError"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditing();
+      return;
+    }
+    const saveModifier = osType === "macos" ? e.metaKey : e.ctrlKey;
+    if (e.key === "Enter" && saveModifier) {
+      e.preventDefault();
+      saveEdit();
+    }
+  };
+
   const handleRetranscribe = async () => {
     try {
       setRetrying(true);
@@ -358,7 +453,14 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   return (
     <div className="px-4 py-2 pb-5 flex flex-col gap-3">
       <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">{formattedDate}</p>
+        <div className="flex items-baseline gap-2">
+          <p className="text-sm font-medium">{formattedDate}</p>
+          {entry.edited_text !== null && (
+            <span className="text-xs text-text/50">
+              {t("settings.history.edited")}
+            </span>
+          )}
+        </div>
         <div className="flex items-center">
           <IconButton
             onClick={handleCopyText}
@@ -370,6 +472,13 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             ) : (
               <Copy width={16} height={16} />
             )}
+          </IconButton>
+          <IconButton
+            onClick={startEditing}
+            disabled={!hasTranscription || retrying || editing}
+            title={t("settings.history.edit")}
+          >
+            <Pencil width={16} height={16} />
           </IconButton>
           <IconButton
             onClick={onToggleSaved}
@@ -412,34 +521,66 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
         </div>
       </div>
 
-      <p
-        className={`italic text-sm pb-2 ${
-          retrying
-            ? ""
-            : hasTranscription
-              ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
-              : "text-text/40"
-        }`}
-        style={
-          retrying
-            ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
-            : undefined
-        }
-      >
-        {retrying && (
-          <style>{`
+      {editing && !retrying ? (
+        <div className="flex flex-col gap-2 pb-2">
+          <Textarea
+            variant="compact"
+            className="w-full"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleEditorKeyDown}
+            disabled={saving}
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={cancelEditing}
+              disabled={saving}
+            >
+              {t("settings.history.cancelEdit")}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={saveEdit}
+              disabled={!canSave}
+            >
+              {t("settings.history.saveEdit")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p
+          className={`italic text-sm pb-2 ${
+            retrying
+              ? ""
+              : hasTranscription
+                ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
+                : "text-text/40"
+          }`}
+          style={
+            retrying
+              ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
+              : undefined
+          }
+        >
+          {retrying && (
+            <style>{`
             @keyframes transcribe-pulse {
               0%, 100% { color: color-mix(in srgb, var(--color-text) 40%, transparent); }
               50% { color: color-mix(in srgb, var(--color-text) 90%, transparent); }
             }
           `}</style>
-        )}
-        {retrying
-          ? t("settings.history.transcribing")
-          : hasTranscription
-            ? entry.transcription_text
-            : t("settings.history.transcriptionFailed")}
-      </p>
+          )}
+          {retrying
+            ? t("settings.history.transcribing")
+            : hasTranscription
+              ? displayText
+              : t("settings.history.transcriptionFailed")}
+        </p>
+      )}
 
       <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
     </div>

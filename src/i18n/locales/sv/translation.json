@@ -387,6 +387,17 @@
         "remove": "Ta bort {{word}}",
         "duplicate": "\"{{word}}\" finns redan"
       },
+      "learning": {
+        "label": "Lär av rättelser",
+        "description": "När du rättar ett ord i en transkription i Historik lägger Handy till det bland dina egna ord. Din efterbehandlingsmodell avgör vilka ändringar som är nya ord.",
+        "local": "Bearbetas på den här datorn.",
+        "cloud": "Rättade ord skickas till {{provider}}.",
+        "postProcessingOff": "Aktivera efterbehandling och välj en modell först.",
+        "noModel": "Välj en efterbehandlingsmodell först.",
+        "providerUnsupported": "Den här efterbehandlingsleverantören kan inte besvara strukturerade frågor. Välj en annan leverantör.",
+        "appleUnavailable": "Apple Intelligence är inte tillgängligt på den här datorn.",
+        "learnedBadge": "inlärt"
+      },
       "voiceActivityDetection": {
         "title": "Röstaktivitetsdetektering",
         "description": "Filtrerar bort tystnad från inspelningar. Modeller med streamingstöd använder en längre VAD-svans; om VAD inaktiveras spelas rått ljud in."
@@ -475,7 +486,18 @@
       "retranscribe": "Transkribera igen",
       "retranscribeError": "Misslyckades med att transkribera igen. Försök igen.",
       "transcribing": "Transkriberar...",
-      "transcriptionFailed": "Transkribering misslyckades. Du kan transkribera igen med hjälp av ikonen för nytt försök."
+      "transcriptionFailed": "Transkribering misslyckades. Du kan transkribera igen med hjälp av ikonen för nytt försök.",
+      "edit": "Redigera transkription",
+      "saveEdit": "Spara",
+      "cancelEdit": "Avbryt",
+      "edited": "Redigerad",
+      "editError": "Det gick inte att spara ändringen. Försök igen."
+    },
+    "learning": {
+      "learnedOne": "{{word}} lades till bland dina egna ord",
+      "learnedMany": "Lärde sig {{count}} nya ord",
+      "undo": "Ångra",
+      "undone": "Borttagna igen. De orden kommer inte att läras in automatiskt."
     },
     "debug": {
       "title": "Felsökning",

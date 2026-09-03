@@ -387,6 +387,17 @@
         "remove": "{{word}} entfernen",
         "duplicate": "\"{{word}}\" existiert bereits"
       },
+      "learning": {
+        "label": "Aus Korrekturen lernen",
+        "description": "Wenn du im Verlauf ein Wort in einer Transkription korrigierst, fügt Handy es zu deinen eigenen Wörtern hinzu. Dein Nachbearbeitungsmodell entscheidet, welche Änderungen neue Wörter sind.",
+        "local": "Wird auf diesem Mac verarbeitet.",
+        "cloud": "Korrigierte Wörter werden an {{provider}} gesendet.",
+        "postProcessingOff": "Aktiviere zuerst die Nachbearbeitung und wähle ein Modell.",
+        "noModel": "Wähle zuerst ein Nachbearbeitungsmodell.",
+        "providerUnsupported": "Dieser Nachbearbeitungsanbieter kann keine strukturierten Anfragen beantworten. Wähle einen anderen Anbieter.",
+        "appleUnavailable": "Apple Intelligence ist auf diesem Mac nicht verfügbar.",
+        "learnedBadge": "gelernt"
+      },
       "voiceActivityDetection": {
         "title": "Sprachaktivitätserkennung (VAD)",
         "description": "Filtert Stille aus Aufnahmen. Streamingfähige Modelle verwenden ein längeres VAD-Ende; das Deaktivieren von VAD nimmt Rohaudio auf."
@@ -475,7 +486,18 @@
       "retranscribe": "Erneut transkribieren",
       "retranscribeError": "Erneute Transkription fehlgeschlagen. Bitte versuche es erneut.",
       "transcribing": "Transkribiere...",
-      "transcriptionFailed": "Transkription fehlgeschlagen. Du kannst über das Wiederholen-Symbol erneut transkribieren."
+      "transcriptionFailed": "Transkription fehlgeschlagen. Du kannst über das Wiederholen-Symbol erneut transkribieren.",
+      "edit": "Transkription bearbeiten",
+      "saveEdit": "Speichern",
+      "cancelEdit": "Abbrechen",
+      "edited": "Bearbeitet",
+      "editError": "Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    },
+    "learning": {
+      "learnedOne": "{{word}} wurde zu deinen eigenen Wörtern hinzugefügt",
+      "learnedMany": "{{count}} neue Wörter gelernt",
+      "undo": "Rückgängig",
+      "undone": "Wieder entfernt. Diese Wörter werden nicht automatisch gelernt."
     },
     "debug": {
       "title": "Debug",

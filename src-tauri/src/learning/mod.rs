@@ -16,6 +16,13 @@ use log::debug;
 pub use check::{availability, Availability, VocabularyCheck};
 pub use prefilter::Candidate;
 
+/// One learned entry: what the speech model wrote and the spelling to add.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Learned {
+    pub heard: String,
+    pub meant: String,
+}
+
 /// What the learner already knows and must not learn again.
 pub struct LearnContext<'a> {
     pub custom_words: &'a [String],
@@ -61,14 +68,14 @@ pub fn candidates(original: &str, edited: &str, ctx: &LearnContext<'_>) -> Vec<C
     out
 }
 
-/// Words to add to the dictionary after the user corrected `original` into
-/// `edited`. One model call per edit. Any failure yields no words.
+/// Entries to add to the dictionary after the user corrected `original` into
+/// `edited`. One model call per edit. Any failure yields nothing.
 pub async fn learn<C: VocabularyCheck>(
     original: &str,
     edited: &str,
     ctx: &LearnContext<'_>,
     check: &C,
-) -> Vec<String> {
+) -> Vec<Learned> {
     let candidates = candidates(original, edited, ctx);
     if candidates.is_empty() {
         return Vec::new();
@@ -80,12 +87,15 @@ pub async fn learn<C: VocabularyCheck>(
             return Vec::new();
         }
     };
-    let mut learned = Vec::new();
+    let mut learned: Vec<Learned> = Vec::new();
     for (candidate, kind) in candidates.iter().zip(kinds) {
         if kind.is_vocabulary() {
             let word = normalize_word(&candidate.meant);
-            if !word.is_empty() && !learned.contains(&word) {
-                learned.push(word);
+            if !word.is_empty() && !learned.iter().any(|l| l.meant == word) {
+                learned.push(Learned {
+                    heard: candidate.heard.clone(),
+                    meant: word,
+                });
             }
         } else {
             debug!(
@@ -154,7 +164,13 @@ mod tests {
             &check,
         )
         .await;
-        assert_eq!(learned, vec!["ChargeBee".to_string()]);
+        assert_eq!(
+            learned,
+            vec![Learned {
+                heard: "Charge B".into(),
+                meant: "ChargeBee".into()
+            }]
+        );
         assert_eq!(check.calls(), 1);
     }
 
@@ -171,7 +187,10 @@ mod tests {
             &check,
         )
         .await;
-        assert_eq!(learned, vec!["Priyanka".to_string(), "Zentrix".to_string()]);
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["Priyanka", "Zentrix"]
+        );
         assert_eq!(check.asked.lock().unwrap()[0].len(), 2);
     }
 

@@ -387,6 +387,17 @@
         "remove": "Eliminar {{word}}",
         "duplicate": "\"{{word}}\" ya existe"
       },
+      "learning": {
+        "label": "Aprender de las correcciones",
+        "description": "Cuando corriges una palabra de una transcripción en el Historial, Handy la añade a tus palabras personalizadas. Usa tu modelo de posprocesamiento para decidir qué cambios son palabras nuevas.",
+        "local": "Se procesa en este Mac.",
+        "cloud": "Las palabras corregidas se envían a {{provider}}.",
+        "postProcessingOff": "Activa primero el posprocesamiento y elige un modelo.",
+        "noModel": "Elige primero un modelo de posprocesamiento.",
+        "providerUnsupported": "Este proveedor de posprocesamiento no puede responder preguntas estructuradas. Elige otro proveedor.",
+        "appleUnavailable": "Apple Intelligence no está disponible en este Mac.",
+        "learnedBadge": "aprendida"
+      },
       "voiceActivityDetection": {
         "title": "Detección de actividad de voz",
         "description": "Filtra el silencio de las grabaciones. Los modelos compatibles con streaming usan una cola de VAD más larga; desactivar el VAD graba audio sin procesar."
@@ -475,7 +486,18 @@
       "retranscribe": "Re-transcribir",
       "retranscribeError": "No se pudo re-transcribir. Por favor, inténtalo de nuevo.",
       "transcribing": "Transcribiendo...",
-      "transcriptionFailed": "La transcripción falló. Puedes re-transcribir usando el icono de reintentar."
+      "transcriptionFailed": "La transcripción falló. Puedes re-transcribir usando el icono de reintentar.",
+      "edit": "Editar transcripción",
+      "saveEdit": "Guardar",
+      "cancelEdit": "Cancelar",
+      "edited": "Editada",
+      "editError": "No se pudo guardar la edición. Inténtalo de nuevo."
+    },
+    "learning": {
+      "learnedOne": "Se añadió {{word}} a tus palabras personalizadas",
+      "learnedMany": "Se aprendieron {{count}} palabras nuevas",
+      "undo": "Deshacer",
+      "undone": "Eliminadas de nuevo. Esas palabras no se aprenderán automáticamente."
     },
     "debug": {
       "title": "Depuración",
