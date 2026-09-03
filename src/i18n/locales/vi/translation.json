@@ -396,7 +396,10 @@
         "noModel": "Hãy chọn một mô hình hậu xử lý trước.",
         "providerUnsupported": "Nhà cung cấp hậu xử lý này không thể trả lời các câu hỏi có cấu trúc. Hãy chọn nhà cung cấp khác.",
         "appleUnavailable": "Apple Intelligence không khả dụng trên máy Mac này.",
-        "learnedBadge": "đã học"
+        "learnedBadge": "đã học",
+        "appsLabel": "Cũng học từ các chỉnh sửa trong ứng dụng khác",
+        "appsDescription": "Sau khi dán, Handy chỉ đọc lại phần văn bản đã dán và học từ những gì bạn thay đổi ở đó. Không bao giờ trong ô mật khẩu hoặc ứng dụng bị loại trừ.",
+        "appsNeedsOverlay": "Bật lớp phủ trước để bạn có thể xem và hoàn tác những gì đã học."
       },
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
@@ -726,7 +729,11 @@
     "copied": "Đã sao chép",
     "dismiss": "Đóng",
     "pin": "Tiếp tục ghi âm",
-    "finish": "Xong"
+    "finish": "Xong",
+    "learnedOne": "Đã thêm {{word}}",
+    "learnedMany": "Đã học {{count}} từ",
+    "undo": "Hoàn tác",
+    "undone": "Đã hoàn tác"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

@@ -396,7 +396,10 @@
         "noModel": "Elige primero un modelo de posprocesamiento.",
         "providerUnsupported": "Este proveedor de posprocesamiento no puede responder preguntas estructuradas. Elige otro proveedor.",
         "appleUnavailable": "Apple Intelligence no está disponible en este Mac.",
-        "learnedBadge": "aprendida"
+        "learnedBadge": "aprendida",
+        "appsLabel": "Aprender también de correcciones en otras apps",
+        "appsDescription": "Después de pegar, Handy vuelve a leer solo el texto que pegó y aprende de lo que cambies ahí. Nunca en campos de contraseña ni en apps excluidas.",
+        "appsNeedsOverlay": "Activa primero la superposición para poder ver y deshacer lo aprendido."
       },
       "voiceActivityDetection": {
         "title": "Detección de actividad de voz",
@@ -726,7 +729,11 @@
     "copied": "Copiado",
     "dismiss": "Cerrar",
     "pin": "Seguir grabando",
-    "finish": "Finalizar"
+    "finish": "Finalizar",
+    "learnedOne": "Se añadió {{word}}",
+    "learnedMany": "Se aprendieron {{count}} palabras",
+    "undo": "Deshacer",
+    "undone": "Deshecho"
   },
   "whatsNew": {
     "title": "Nuevo en Handy v{{version}}"

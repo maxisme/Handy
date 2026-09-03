@@ -4,6 +4,7 @@ use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, S
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
 use crate::copy_prompt;
 use crate::focus;
+use crate::learning;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
@@ -554,6 +555,9 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+        // A read-back session from the previous paste takes its final reading
+        // now, so its toast never lands on top of the new recording.
+        learning::readback::finish_now();
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -879,15 +883,17 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             // Save to history if WAV was saved
+                            let mut history_id = None;
                             if wav_saved {
-                                if let Err(err) = hm.save_entry(
+                                match hm.save_entry(
                                     file_name,
                                     transcription,
                                     post_process,
                                     processed.post_processed_text.clone(),
                                     processed.post_process_prompt.clone(),
                                 ) {
-                                    error!("Failed to save history entry: {}", err);
+                                    Ok(entry) => history_id = Some(entry.id),
+                                    Err(err) => error!("Failed to save history entry: {}", err),
                                 }
                             }
 
@@ -928,6 +934,13 @@ impl ShortcutAction for TranscribeAction {
                                                 true
                                             }
                                         };
+                                    if !paste_failed && target_is_text_input == Some(true) {
+                                        learning::readback::start(
+                                            &ah_clone,
+                                            transcript.clone(),
+                                            history_id,
+                                        );
+                                    }
                                     let settings = get_settings(&ah_clone);
                                     if copy_prompt::should_offer_copy(
                                         &settings,

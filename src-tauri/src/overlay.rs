@@ -50,13 +50,25 @@ const OVERLAY_HEIGHT: f64 = 46.0;
 const OVERLAY_STREAM_WIDTH: f64 = 400.0;
 const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
 
-/// Overlay window size (logical) for a given UI state.
+/// Overlay window size (logical) for a given UI state. Every state other than
+/// "streaming" — recording, transcribing, processing, "copy-prompt" and
+/// "learned" — uses the compact pill.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
-    if state == "streaming" {
-        (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT)
-    } else {
-        (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+    match state {
+        "streaming" => (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT),
+        // "recording", "transcribing", "processing", "copy-prompt", "learned"
+        _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
+}
+
+/// Payload of the `learned-words-event` sent to the overlay with the
+/// "learned" state. `timeout_ms` is the countdown the frontend runs before
+/// dismissing the toast on its own.
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct LearnedWordsEvent {
+    pub batch_id: i64,
+    pub words: Vec<String>,
+    pub timeout_ms: u64,
 }
 
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
@@ -636,6 +648,37 @@ pub fn show_copy_prompt_overlay(app_handle: &AppHandle, auto_hide_after: Duratio
     let _ = app_handle.run_on_main_thread(move || {
         show_overlay_state_on_main(&handle, "copy-prompt");
         hide_overlay_after(&handle, auto_hide_after);
+    });
+}
+
+/// Shows the "learned words" toast for a batch learned from a correction in
+/// another app, and sends the overlay the words plus the countdown length as
+/// `learned-words-event`.
+///
+/// The frontend runs the countdown (hovering the pill pauses it) and
+/// dismisses the toast itself when it ends; the delayed hide scheduled here
+/// only guards against a frontend that never does. Like the copy prompt this
+/// is not gated on `overlay_style`: the settings UI refuses to enable
+/// learning from other apps while the overlay is off, and the toast is the
+/// only place a learned batch can be undone straight away. The show and the
+/// emit share one main-thread hop so the event never arrives before the
+/// state change.
+pub fn show_learned_overlay(
+    app_handle: &AppHandle,
+    batch_id: i64,
+    words: &[String],
+    auto_hide_after: Duration,
+) {
+    let payload = LearnedWordsEvent {
+        batch_id,
+        words: words.to_vec(),
+        timeout_ms: auto_hide_after.as_millis() as u64,
+    };
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        show_overlay_state_on_main(&handle, "learned");
+        let _ = handle.emit_to("recording_overlay", "learned-words-event", payload);
+        hide_overlay_after(&handle, crate::learning::toast::SAFETY_HIDE);
     });
 }
 

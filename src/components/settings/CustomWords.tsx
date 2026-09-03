@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { commands, type Availability, type LearnedWord } from "@/bindings";
 import { useSettings } from "../../hooks/useSettings";
+import { useOsType } from "../../hooks/useOsType";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { SettingContainer } from "../ui/SettingContainer";
@@ -32,6 +33,12 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
     const customWordsSetting = getSetting("custom_words");
     const customWords = customWordsSetting ?? EMPTY_WORDS;
     const learnFromCorrections = getSetting("learn_from_corrections") || false;
+    const autoLearnFromApps = getSetting("auto_learn_from_apps") || false;
+    // Learning from other apps reads the pasted text back through the
+    // accessibility API, which only exists on macOS, and surfaces what it
+    // learned on the overlay, so it needs the overlay to be visible.
+    const osType = useOsType();
+    const overlayOff = getSetting("overlay_style") === "none";
     const postProcessEnabled = getSetting("post_process_enabled");
     const postProcessProviderId = getSetting("post_process_provider_id");
     const postProcessModels = getSetting("post_process_models");
@@ -183,6 +190,24 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
           descriptionMode={descriptionMode}
           grouped={grouped}
         />
+        {learnFromCorrections && osType === "macos" && (
+          <ToggleSwitch
+            checked={autoLearnFromApps}
+            onChange={(enabled) =>
+              updateSetting("auto_learn_from_apps", enabled)
+            }
+            disabled={overlayOff}
+            isUpdating={isUpdating("auto_learn_from_apps")}
+            label={t("settings.advanced.learning.appsLabel")}
+            description={
+              overlayOff
+                ? t("settings.advanced.learning.appsNeedsOverlay")
+                : t("settings.advanced.learning.appsDescription")
+            }
+            descriptionMode={descriptionMode}
+            grouped={grouped}
+          />
+        )}
         {customWords.length > 0 && (
           <div
             className={`px-4 p-2 ${grouped ? "" : "rounded-lg border border-mid-gray/20"} flex flex-wrap gap-1`}

@@ -225,6 +225,21 @@
   min-width: var(--ov-work-w);
   max-width: var(--ov-copy-max-w);
 }
+/* Learned-words toast: content-sized under the same cap as the copy prompt.
+   `position: relative` anchors the countdown bar to the pill's bottom edge. */
+.scard.compact.clearned {
+  position: relative;
+  width: fit-content;
+  min-width: var(--ov-rest-w);
+  max-width: var(--ov-copy-max-w);
+}
+/* label (start) | Undo | dismiss (end): the label takes whatever the two
+   buttons leave and ellipsizes, so a long learned word never widens the pill
+   past the native window. */
+.clearned .sbase {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 6px;
+}
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */
 .stext {
@@ -460,6 +475,49 @@
   color: var(--s-muted);
   background: transparent;
   cursor: default;
+}
+
+/* learned-words toast — label, and the countdown bar along the bottom edge */
+.slearned-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline-start: 4px;
+}
+.slearned-label.done {
+  color: var(--s-muted);
+}
+/* Drains from full width to nothing over the toast timeout (set inline from
+   the event's timeout_ms). Inset past the pill's corner radius so the bar is a
+   clean segment rather than a strip clipped by the curve. The `.paused` class
+   is set while the pointer is over the pill, in step with the JS timer. */
+.sbar {
+  position: absolute;
+  inset-inline: 14px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--s-accent);
+  transform-origin: left;
+  animation: sbar-drain linear forwards;
+}
+[dir="rtl"] .sbar {
+  transform-origin: right;
+}
+.clearned.paused .sbar {
+  animation-play-state: paused;
+}
+@keyframes sbar-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 /* working state (transcribing / polishing) — spinner + label */

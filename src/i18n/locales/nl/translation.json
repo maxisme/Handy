@@ -396,7 +396,10 @@
         "noModel": "Kies eerst een nabewerkingsmodel.",
         "providerUnsupported": "Deze nabewerkingsprovider kan geen gestructureerde vragen beantwoorden. Kies een andere provider.",
         "appleUnavailable": "Apple Intelligence is niet beschikbaar op deze Mac.",
-        "learnedBadge": "geleerd"
+        "learnedBadge": "geleerd",
+        "appsLabel": "Ook leren van correcties in andere apps",
+        "appsDescription": "Na het plakken leest Handy alleen de geplakte tekst terug en leert van wat je daar verandert. Nooit in wachtwoordvelden of uitgesloten apps.",
+        "appsNeedsOverlay": "Zet eerst de overlay aan, zodat je kunt zien en ongedaan maken wat er is geleerd."
       },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
@@ -729,7 +732,11 @@
     "copied": "Gekopieerd",
     "dismiss": "Sluiten",
     "pin": "Blijven opnemen",
-    "finish": "Klaar"
+    "finish": "Klaar",
+    "learnedOne": "{{word}} toegevoegd",
+    "learnedMany": "{{count}} woorden geleerd",
+    "undo": "Ongedaan maken",
+    "undone": "Ongedaan gemaakt"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",

@@ -680,12 +680,15 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_post_process_enabled_setting,
             shortcut::change_post_process_always_setting,
             shortcut::change_learn_from_corrections_setting,
+            shortcut::change_auto_learn_from_apps_setting,
             commands::learning::get_learning_availability,
             commands::learning::learn_from_correction,
             commands::learning::save_history_edit,
             commands::learning::undo_learned_batch,
             commands::learning::get_learned_words,
             commands::learning::remove_learned_word,
+            learning::toast::undo_learned_toast,
+            learning::toast::dismiss_learned_toast,
             shortcut::change_experimental_enabled_setting,
             shortcut::change_post_process_base_url_setting,
             shortcut::change_post_process_api_key_setting,
@@ -990,6 +993,7 @@ pub fn run(cli_args: CliArgs) {
             let app_handle = app.handle().clone();
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
             app.manage(copy_prompt::LastTranscript::default());
+            app.manage(learning::toast::PendingBatch::default());
 
             initialize_core_logic(&app_handle);
 

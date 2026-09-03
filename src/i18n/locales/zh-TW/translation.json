@@ -396,7 +396,10 @@
         "noModel": "請先選擇後處理模型。",
         "providerUnsupported": "此後處理供應商無法回答結構化問題，請選擇其他供應商。",
         "appleUnavailable": "這台 Mac 無法使用 Apple Intelligence。",
-        "learnedBadge": "已學習"
+        "learnedBadge": "已學習",
+        "appsLabel": "也從其他應用程式中的更正學習",
+        "appsDescription": "貼上後，Handy 只會讀回它貼上的文字，並從你在那裡所做的修改中學習。絕不會在密碼欄位或已排除的應用程式中進行。",
+        "appsNeedsOverlay": "請先開啟懸浮窗，以便查看並復原學到的內容。"
       },
       "voiceActivityDetection": {
         "title": "語音活動偵測",
@@ -726,7 +729,11 @@
     "copied": "已複製",
     "dismiss": "關閉",
     "pin": "繼續錄音",
-    "finish": "完成"
+    "finish": "完成",
+    "learnedOne": "已加入 {{word}}",
+    "learnedMany": "已學習 {{count}} 個詞",
+    "undo": "復原",
+    "undone": "已復原"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

@@ -17,7 +17,23 @@ type OverlayState =
   | "streaming"
   | "transcribing"
   | "processing"
-  | "copy-prompt";
+  | "copy-prompt"
+  | "learned";
+
+// Payload of `learned-words-event` (overlay.rs `LearnedWordsEvent`): a batch
+// of words learned from a correction in another app, and how long the toast
+// counts down before dismissing itself.
+type LearnedWordsEvent = {
+  batch_id: number;
+  words: string[];
+  timeout_ms: number;
+};
+
+type LearnedToast = {
+  batchId: number;
+  words: string[];
+  timeoutMs: number;
+};
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -55,6 +71,17 @@ const RecordingOverlay: React.FC = () => {
   // Copy prompt: flips to true once the transcript is on the clipboard so the
   // button can confirm before the backend hides the overlay.
   const [copied, setCopied] = useState(false);
+  // Learned-words toast: the batch on offer, whether Undo has taken it back,
+  // whether an undo is in flight, and whether the pointer is over the pill
+  // (which holds the countdown).
+  const [learned, setLearned] = useState<LearnedToast | null>(null);
+  const [undone, setUndone] = useState(false);
+  const [undoing, setUndoing] = useState(false);
+  const [toastPaused, setToastPaused] = useState(false);
+  // Countdown bookkeeping: which batch the timer belongs to and how much of
+  // its timeout is left, so a hover pause resumes where it stopped.
+  const toastBatchRef = useRef<number | null>(null);
+  const toastRemainingRef = useRef(0);
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
@@ -80,6 +107,11 @@ const RecordingOverlay: React.FC = () => {
         }
         if (overlayState === "copy-prompt") {
           setCopied(false);
+        }
+        if (overlayState === "learned") {
+          setUndone(false);
+          setUndoing(false);
+          setToastPaused(false);
         }
 
         await syncLanguageFromSettings();
@@ -134,6 +166,17 @@ const RecordingOverlay: React.FC = () => {
         setLevels(smoothed.slice(0, WAVE_BARS));
       });
 
+      const unlistenLearned = await listen<LearnedWordsEvent>(
+        "learned-words-event",
+        (event) => {
+          setLearned({
+            batchId: event.payload.batch_id,
+            words: event.payload.words,
+            timeoutMs: event.payload.timeout_ms,
+          });
+        },
+      );
+
       const unlistenStream = await events.streamTextEvent.listen((event) => {
         setStreamText(event.payload);
       });
@@ -150,6 +193,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenReady();
         unlistenPinned();
         unlistenLevel();
+        unlistenLearned();
         unlistenStream();
         unlistenPhase();
       };
@@ -164,6 +208,37 @@ const RecordingOverlay: React.FC = () => {
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
   }, [state, isVisible, captureReady]);
+
+  // Learned-words countdown. Runs only while the toast is up, not undone and
+  // not hovered; a hover pause stores the time left so the timer resumes from
+  // there instead of restarting. When it runs out the backend hides the toast.
+  useEffect(() => {
+    if (
+      state !== "learned" ||
+      !isVisible ||
+      learned === null ||
+      undone ||
+      toastPaused
+    ) {
+      return;
+    }
+    if (toastBatchRef.current !== learned.batchId) {
+      toastBatchRef.current = learned.batchId;
+      toastRemainingRef.current = learned.timeoutMs;
+    }
+    const remaining = toastRemainingRef.current;
+    const startedAt = Date.now();
+    const id = setTimeout(() => {
+      commands.dismissLearnedToast();
+    }, remaining);
+    return () => {
+      clearTimeout(id);
+      toastRemainingRef.current = Math.max(
+        0,
+        remaining - (Date.now() - startedAt),
+      );
+    };
+  }, [state, isVisible, learned, undone, toastPaused]);
 
   // Stick to the bottom as text streams in — but only while pinned, so a user who
   // has scrolled up to read history isn't yanked back down by the next chunk.
@@ -374,6 +449,66 @@ const RecordingOverlay: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Learned-words toast: a correction in another app taught Handy new
+  // words. label (start) | Undo | dismiss (end), with a countdown bar along the
+  // bottom edge. Hovering the pill holds the countdown; Undo takes the batch
+  // back and the label turns into the confirmation until the backend hides.
+  if (state === "learned") {
+    const label = (() => {
+      if (undone) return t("overlay.undone");
+      if (learned === null) return "";
+      if (learned.words.length === 1) {
+        return t("overlay.learnedOne", { word: learned.words[0] });
+      }
+      return t("overlay.learnedMany", { count: learned.words.length });
+    })();
+    const handleUndo = async () => {
+      if (undone || undoing) return;
+      setUndoing(true);
+      const result = await commands.undoLearnedToast();
+      setUndoing(false);
+      if (result.status === "ok") setUndone(true);
+    };
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div
+          className={`scard compact clearned ${toastPaused ? "paused" : ""}`}
+          onMouseEnter={() => setToastPaused(true)}
+          onMouseLeave={() => setToastPaused(false)}
+        >
+          <div className="sbase">
+            <span
+              className={`slearned-label ${undone ? "done" : ""}`}
+              title={label}
+            >
+              {label}
+            </span>
+            {!undone && (
+              <button className="scopy" onClick={handleUndo} disabled={undoing}>
+                {t("overlay.undo")}
+              </button>
+            )}
+            <div className="sbase-r">
+              {closeBtn(t("overlay.dismiss"), () =>
+                commands.dismissLearnedToast(),
+              )}
+            </div>
+          </div>
+          {learned !== null && !undone && (
+            <div
+              key={learned.batchId}
+              className="sbar"
+              style={{ animationDuration: `${learned.timeoutMs}ms` }}
+            />
+          )}
         </div>
       </div>
     );

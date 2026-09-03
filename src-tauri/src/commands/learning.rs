@@ -162,17 +162,33 @@ pub async fn save_history_edit(
     })
 }
 
-/// Take back everything one edit taught. The words leave `custom_words` and
-/// go on the deny list.
-#[tauri::command]
-#[specta::specta]
-pub async fn undo_learned_batch(app: AppHandle, batch_id: i64) -> Result<Vec<String>, String> {
+/// Take back everything one batch taught. The words leave `custom_words`
+/// and go on the deny list. Returns the words removed.
+pub fn undo_batch(app: &AppHandle, batch_id: i64) -> Result<Vec<String>, String> {
     let history = app.state::<Arc<HistoryManager>>();
     let words = history
         .undo_learned_batch(batch_id)
         .map_err(|e| e.to_string())?;
-    forget_words(&app, &words);
+    forget_words(app, &words);
     Ok(words)
+}
+
+/// Take back everything one edit taught.
+#[tauri::command]
+#[specta::specta]
+pub async fn undo_learned_batch(app: AppHandle, batch_id: i64) -> Result<Vec<String>, String> {
+    undo_batch(&app, batch_id)
+}
+
+/// Learn from a correction the user made in another app after a paste.
+/// `original` is the text Handy pasted; `edited` is what that span became.
+pub async fn learn_from_readback(
+    app: &AppHandle,
+    original: &str,
+    edited: &str,
+    history_id: Option<i64>,
+) -> Result<Option<(i64, Vec<String>)>, String> {
+    learn_and_apply(app, original, edited, "readback", history_id).await
 }
 
 /// Learned words still in the dictionary, newest first.

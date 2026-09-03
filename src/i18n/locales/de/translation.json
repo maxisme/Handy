@@ -396,7 +396,10 @@
         "noModel": "Wähle zuerst ein Nachbearbeitungsmodell.",
         "providerUnsupported": "Dieser Nachbearbeitungsanbieter kann keine strukturierten Anfragen beantworten. Wähle einen anderen Anbieter.",
         "appleUnavailable": "Apple Intelligence ist auf diesem Mac nicht verfügbar.",
-        "learnedBadge": "gelernt"
+        "learnedBadge": "gelernt",
+        "appsLabel": "Auch aus Korrekturen in anderen Apps lernen",
+        "appsDescription": "Nach dem Einfügen liest Handy nur den eingefügten Text zurück und lernt aus dem, was du dort änderst. Nie in Passwortfeldern oder ausgeschlossenen Apps.",
+        "appsNeedsOverlay": "Schalte zuerst das Overlay ein, damit du sehen und rückgängig machen kannst, was gelernt wurde."
       },
       "voiceActivityDetection": {
         "title": "Sprachaktivitätserkennung (VAD)",
@@ -726,7 +729,11 @@
     "copied": "Kopiert",
     "dismiss": "Schließen",
     "pin": "Aufnahme fortsetzen",
-    "finish": "Fertig"
+    "finish": "Fertig",
+    "learnedOne": "{{word}} hinzugefügt",
+    "learnedMany": "{{count}} Wörter gelernt",
+    "undo": "Rückgängig",
+    "undone": "Rückgängig gemacht"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"

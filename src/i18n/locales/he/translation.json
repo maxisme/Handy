@@ -396,7 +396,10 @@
         "noModel": "בחרו תחילה מודל עיבוד משני.",
         "providerUnsupported": "ספק העיבוד המשני הזה אינו יכול לענות על שאלות מובנות. בחרו ספק אחר.",
         "appleUnavailable": "Apple Intelligence אינו זמין במחשב ה-Mac הזה.",
-        "learnedBadge": "נלמדה"
+        "learnedBadge": "נלמדה",
+        "appsLabel": "ללמוד גם מתיקונים באפליקציות אחרות",
+        "appsDescription": "אחרי ההדבקה, Handy קורא בחזרה רק את הטקסט שהדביק ולומד ממה שתשנו בו. לעולם לא בשדות סיסמה או באפליקציות שהוחרגו.",
+        "appsNeedsOverlay": "הפעילו קודם את שכבת-העל, כדי שתוכלו לראות ולבטל את מה שנלמד."
       },
       "voiceActivityDetection": {
         "title": "זיהוי פעילות קולית",
@@ -726,7 +729,11 @@
     "copied": "הועתק",
     "dismiss": "סגור",
     "pin": "המשך הקלטה",
-    "finish": "סיום"
+    "finish": "סיום",
+    "learnedOne": "{{word}} נוספה",
+    "learnedMany": "נלמדו {{count}} מילים",
+    "undo": "ביטול",
+    "undone": "בוטל"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

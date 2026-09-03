@@ -10,6 +10,8 @@
 pub mod check;
 pub mod diff;
 pub mod prefilter;
+pub mod readback;
+pub mod toast;
 
 use log::debug;
 

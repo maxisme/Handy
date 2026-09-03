@@ -396,7 +396,10 @@
         "noModel": "Önce bir son işleme modeli seçin.",
         "providerUnsupported": "Bu son işleme sağlayıcısı yapılandırılmış sorulara yanıt veremiyor. Başka bir sağlayıcı seçin.",
         "appleUnavailable": "Apple Intelligence bu Mac'te kullanılamıyor.",
-        "learnedBadge": "öğrenildi"
+        "learnedBadge": "öğrenildi",
+        "appsLabel": "Diğer uygulamalardaki düzeltmelerden de öğren",
+        "appsDescription": "Handy yapıştırdıktan sonra yalnızca yapıştırdığı metni geri okur ve orada değiştirdiklerinizden öğrenir. Parola alanlarında veya hariç tutulan uygulamalarda asla.",
+        "appsNeedsOverlay": "Öğrenilenleri görüp geri alabilmek için önce ekran katmanını açın."
       },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
@@ -726,7 +729,11 @@
     "copied": "Kopyalandı",
     "dismiss": "Kapat",
     "pin": "Kayda devam et",
-    "finish": "Bitir"
+    "finish": "Bitir",
+    "learnedOne": "{{word}} eklendi",
+    "learnedMany": "{{count}} kelime öğrenildi",
+    "undo": "Geri al",
+    "undone": "Geri alındı"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

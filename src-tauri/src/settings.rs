@@ -458,6 +458,13 @@ pub struct AppSettings {
     /// automatically again; a manual add still works.
     #[serde(default)]
     pub learning_denylist: Vec<String>,
+    /// After a paste, read the pasted text back from the focused field and
+    /// learn from what the user changes there. macOS only, off by default.
+    #[serde(default)]
+    pub auto_learn_from_apps: bool,
+    /// Bundle identifiers whose fields are never read back.
+    #[serde(default = "default_auto_learn_app_denylist")]
+    pub auto_learn_app_denylist: Vec<String>,
     #[serde(default = "default_post_process_provider_id")]
     pub post_process_provider_id: String,
     #[serde(default = "default_post_process_providers")]
@@ -653,6 +660,24 @@ fn default_theme() -> Theme {
 
 fn default_post_process_enabled() -> bool {
     false
+}
+
+/// Password managers and terminals: never read their fields back.
+fn default_auto_learn_app_denylist() -> Vec<String> {
+    [
+        "com.1password.1password",
+        "com.agilebits.onepassword7",
+        "com.bitwarden.desktop",
+        "com.lastpass.LastPass",
+        "com.apple.keychainaccess",
+        "com.apple.Terminal",
+        "com.googlecode.iterm2",
+        "dev.warp.Warp-Stable",
+        "com.mitchellh.ghostty",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect()
 }
 
 fn default_app_language() -> String {
@@ -967,6 +992,8 @@ pub fn get_default_settings() -> AppSettings {
         post_process_always: false,
         learn_from_corrections: false,
         learning_denylist: Vec::new(),
+        auto_learn_from_apps: false,
+        auto_learn_app_denylist: default_auto_learn_app_denylist(),
         post_process_provider_id: default_post_process_provider_id(),
         post_process_providers: default_post_process_providers(),
         post_process_api_keys: default_post_process_api_keys(),
@@ -1361,6 +1388,18 @@ mod tests {
             "post_process_always": false,
             "learn_from_corrections": false,
             "learning_denylist": [],
+            "auto_learn_from_apps": false,
+            "auto_learn_app_denylist": [
+                "com.1password.1password",
+                "com.agilebits.onepassword7",
+                "com.bitwarden.desktop",
+                "com.lastpass.LastPass",
+                "com.apple.keychainaccess",
+                "com.apple.Terminal",
+                "com.googlecode.iterm2",
+                "dev.warp.Warp-Stable",
+                "com.mitchellh.ghostty"
+            ],
             "post_process_provider_id": "openai",
             "post_process_providers": [
                 {

@@ -396,7 +396,10 @@
         "noModel": "Choose a post-processing model first.",
         "providerUnsupported": "This post-processing provider cannot answer structured questions. Choose another provider.",
         "appleUnavailable": "Apple Intelligence is not available on this Mac.",
-        "learnedBadge": "learned"
+        "learnedBadge": "learned",
+        "appsLabel": "Also learn from corrections in other apps",
+        "appsDescription": "After Handy pastes, it reads back only the text it pasted and learns from what you change there. Never in password fields or excluded apps.",
+        "appsNeedsOverlay": "Turn the overlay on first, so you can see and undo what was learned."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -729,7 +732,11 @@
     "copied": "Copied",
     "dismiss": "Dismiss",
     "pin": "Keep recording",
-    "finish": "Finish"
+    "finish": "Finish",
+    "learnedOne": "Added {{word}}",
+    "learnedMany": "Learned {{count}} words",
+    "undo": "Undo",
+    "undone": "Undone"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} may be blocking 1 shortcut",

@@ -396,7 +396,10 @@
         "noModel": "Vælg en efterbehandlingsmodel først.",
         "providerUnsupported": "Denne efterbehandlingsudbyder kan ikke besvare strukturerede spørgsmål. Vælg en anden udbyder.",
         "appleUnavailable": "Apple Intelligence er ikke tilgængelig på denne Mac.",
-        "learnedBadge": "lært"
+        "learnedBadge": "lært",
+        "appsLabel": "Lær også af rettelser i andre apps",
+        "appsDescription": "Når Handy har indsat tekst, læser den kun den indsatte tekst tilbage og lærer af det, du ændrer der. Aldrig i adgangskodefelter eller udelukkede apps.",
+        "appsNeedsOverlay": "Slå overlayet til først, så du kan se og fortryde det, der blev lært."
       },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
@@ -729,7 +732,11 @@
     "copied": "Kopieret",
     "dismiss": "Luk",
     "pin": "Fortsæt optagelse",
-    "finish": "Færdig"
+    "finish": "Færdig",
+    "learnedOne": "Tilføjede {{word}}",
+    "learnedMany": "Lærte {{count}} ord",
+    "undo": "Fortryd",
+    "undone": "Fortrudt"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",

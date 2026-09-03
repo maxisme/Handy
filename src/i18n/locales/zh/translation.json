@@ -396,7 +396,10 @@
         "noModel": "请先选择后处理模型。",
         "providerUnsupported": "此后处理提供商无法回答结构化问题，请选择其他提供商。",
         "appleUnavailable": "这台 Mac 不支持 Apple Intelligence。",
-        "learnedBadge": "已学习"
+        "learnedBadge": "已学习",
+        "appsLabel": "也从其他应用中的更正学习",
+        "appsDescription": "粘贴后，Handy 只会读回它粘贴的文本，并从你在那里做的修改中学习。绝不会在密码字段或已排除的应用中进行。",
+        "appsNeedsOverlay": "请先开启悬浮窗，以便查看并撤销学到的内容。"
       },
       "voiceActivityDetection": {
         "title": "语音活动检测",
@@ -726,7 +729,11 @@
     "copied": "已复制",
     "dismiss": "关闭",
     "pin": "继续录音",
-    "finish": "完成"
+    "finish": "完成",
+    "learnedOne": "已添加 {{word}}",
+    "learnedMany": "已学习 {{count}} 个词",
+    "undo": "撤销",
+    "undone": "已撤销"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

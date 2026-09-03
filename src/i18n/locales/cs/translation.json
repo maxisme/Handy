@@ -396,7 +396,10 @@
         "noModel": "Nejprve vyberte model pro následné zpracování.",
         "providerUnsupported": "Tento poskytovatel následného zpracování neumí odpovídat na strukturované dotazy. Vyberte jiného poskytovatele.",
         "appleUnavailable": "Apple Intelligence není na tomto Macu k dispozici.",
-        "learnedBadge": "naučeno"
+        "learnedBadge": "naučeno",
+        "appsLabel": "Učit se také z oprav v jiných aplikacích",
+        "appsDescription": "Po vložení Handy zpětně přečte pouze vložený text a učí se z toho, co v něm změníte. Nikdy v polích pro hesla ani ve vyloučených aplikacích.",
+        "appsNeedsOverlay": "Nejprve zapněte překryv, abyste viděli, co se naučilo, a mohli to vrátit."
       },
       "voiceActivityDetection": {
         "title": "Detekce hlasové aktivity",
@@ -726,7 +729,11 @@
     "copied": "Zkopírováno",
     "dismiss": "Zavřít",
     "pin": "Pokračovat v nahrávání",
-    "finish": "Dokončit"
+    "finish": "Dokončit",
+    "learnedOne": "Přidáno {{word}}",
+    "learnedMany": "Naučeno {{count}} slov",
+    "undo": "Vrátit",
+    "undone": "Vráceno"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

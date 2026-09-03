@@ -396,7 +396,10 @@
         "noModel": "先に後処理モデルを選択してください。",
         "providerUnsupported": "この後処理プロバイダーは構造化された質問に応答できません。別のプロバイダーを選択してください。",
         "appleUnavailable": "この Mac では Apple Intelligence を利用できません。",
-        "learnedBadge": "学習済み"
+        "learnedBadge": "学習済み",
+        "appsLabel": "他のアプリでの修正からも学習する",
+        "appsDescription": "貼り付け後、Handy は貼り付けたテキストだけを読み戻し、そこでの変更から学習します。パスワード欄や除外したアプリでは行いません。",
+        "appsNeedsOverlay": "学習した内容を確認して元に戻せるよう、先にオーバーレイをオンにしてください。"
       },
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",
@@ -726,7 +729,11 @@
     "copied": "コピーしました",
     "dismiss": "閉じる",
     "pin": "録音を続ける",
-    "finish": "完了"
+    "finish": "完了",
+    "learnedOne": "{{word}} を追加しました",
+    "learnedMany": "{{count}} 個の単語を学習しました",
+    "undo": "元に戻す",
+    "undone": "元に戻しました"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

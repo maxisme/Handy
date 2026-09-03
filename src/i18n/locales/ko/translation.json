@@ -396,7 +396,10 @@
         "noModel": "먼저 후처리 모델을 선택하세요.",
         "providerUnsupported": "이 후처리 제공자는 구조화된 질문에 응답할 수 없습니다. 다른 제공자를 선택하세요.",
         "appleUnavailable": "이 Mac에서는 Apple Intelligence를 사용할 수 없습니다.",
-        "learnedBadge": "학습됨"
+        "learnedBadge": "학습됨",
+        "appsLabel": "다른 앱에서의 수정으로도 학습",
+        "appsDescription": "붙여넣은 뒤 Handy는 붙여넣은 텍스트만 다시 읽고 거기서 바꾼 내용으로 학습합니다. 비밀번호 필드나 제외된 앱에서는 절대 하지 않습니다.",
+        "appsNeedsOverlay": "학습된 내용을 확인하고 취소할 수 있도록 먼저 오버레이를 켜세요."
       },
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
@@ -726,7 +729,11 @@
     "copied": "복사됨",
     "dismiss": "닫기",
     "pin": "계속 녹음",
-    "finish": "완료"
+    "finish": "완료",
+    "learnedOne": "{{word}} 추가됨",
+    "learnedMany": "단어 {{count}}개 학습됨",
+    "undo": "실행 취소",
+    "undone": "취소됨"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

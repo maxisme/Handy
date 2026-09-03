@@ -160,6 +160,8 @@ const settingUpdaters: {
     commands.changePostProcessAlwaysSetting(value as boolean),
   learn_from_corrections: (value) =>
     commands.changeLearnFromCorrectionsSetting(value as boolean),
+  auto_learn_from_apps: (value) =>
+    commands.changeAutoLearnFromAppsSetting(value as boolean),
   post_process_selected_prompt_id: (value) =>
     commands.setPostProcessSelectedPrompt(value as string),
   mute_while_recording: (value) =>

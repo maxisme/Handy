@@ -396,7 +396,10 @@
         "noModel": "Välj en efterbehandlingsmodell först.",
         "providerUnsupported": "Den här efterbehandlingsleverantören kan inte besvara strukturerade frågor. Välj en annan leverantör.",
         "appleUnavailable": "Apple Intelligence är inte tillgängligt på den här datorn.",
-        "learnedBadge": "inlärt"
+        "learnedBadge": "inlärt",
+        "appsLabel": "Lär även av rättningar i andra appar",
+        "appsDescription": "Efter att Handy klistrat in läser den bara tillbaka texten den klistrade in och lär sig av det du ändrar där. Aldrig i lösenordsfält eller uteslutna appar.",
+        "appsNeedsOverlay": "Slå på overlayen först, så att du kan se och ångra det som lärdes in."
       },
       "voiceActivityDetection": {
         "title": "Röstaktivitetsdetektering",
@@ -726,7 +729,11 @@
     "copied": "Kopierat",
     "dismiss": "Stäng",
     "pin": "Fortsätt spela in",
-    "finish": "Klar"
+    "finish": "Klar",
+    "learnedOne": "Lade till {{word}}",
+    "learnedMany": "Lärde sig {{count}} ord",
+    "undo": "Ångra",
+    "undone": "Ångrat"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"
