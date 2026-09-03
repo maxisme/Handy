@@ -387,6 +387,20 @@
         "remove": "Remover {{word}}",
         "duplicate": "\"{{word}}\" já existe"
       },
+      "learning": {
+        "label": "Aprender com correções",
+        "description": "Quando você corrige uma palavra em uma transcrição no Histórico, o Handy a adiciona às suas palavras personalizadas. Usa seu modelo de pós-processamento para decidir quais alterações são palavras novas.",
+        "local": "Processado neste Mac.",
+        "cloud": "As palavras corrigidas são enviadas para {{provider}}.",
+        "postProcessingOff": "Ative o pós-processamento e escolha um modelo primeiro.",
+        "noModel": "Escolha um modelo de pós-processamento primeiro.",
+        "providerUnsupported": "Este provedor de pós-processamento não consegue responder a perguntas estruturadas. Escolha outro provedor.",
+        "appleUnavailable": "A Apple Intelligence não está disponível neste Mac.",
+        "learnedBadge": "aprendida",
+        "appsLabel": "Aprender também com correções em outros apps",
+        "appsDescription": "Depois de colar, o Handy relê apenas o texto que colou e aprende com o que você altera ali. Nunca em campos de senha ou apps excluídos.",
+        "appsNeedsOverlay": "Ative a sobreposição primeiro para ver e desfazer o que foi aprendido."
+      },
       "voiceActivityDetection": {
         "title": "Detecção de atividade de voz",
         "description": "Filtra o silêncio das gravações. Modelos com suporte a streaming usam uma cauda de VAD mais longa; desativar o VAD grava o áudio bruto."
@@ -475,7 +489,18 @@
       "retranscribe": "Re-transcrever",
       "retranscribeError": "Falha ao re-transcrever. Por favor, tente novamente.",
       "transcribing": "Transcrevendo...",
-      "transcriptionFailed": "A transcrição falhou. Você pode re-transcrever usando o ícone de tentar novamente."
+      "transcriptionFailed": "A transcrição falhou. Você pode re-transcrever usando o ícone de tentar novamente.",
+      "edit": "Editar transcrição",
+      "saveEdit": "Salvar",
+      "cancelEdit": "Cancelar",
+      "edited": "Editada",
+      "editError": "Não foi possível salvar a edição. Tente novamente."
+    },
+    "learning": {
+      "learnedOne": "{{word}} foi adicionada às suas palavras personalizadas",
+      "learnedMany": "{{count}} novas palavras aprendidas",
+      "undo": "Desfazer",
+      "undone": "Removidas novamente. Essas palavras não serão aprendidas automaticamente."
     },
     "debug": {
       "title": "Depuração",
@@ -704,7 +729,12 @@
     "copied": "Copiado",
     "dismiss": "Fechar",
     "pin": "Continuar gravando",
-    "finish": "Concluir"
+    "finish": "Concluir",
+    "learnedOne": "{{word}} adicionada",
+    "learnedMany": "{{count}} palavras aprendidas",
+    "undo": "Desfazer",
+    "keep": "Manter",
+    "undone": "Desfeito"
   },
   "whatsNew": {
     "title": "Novidades no Handy v{{version}}"

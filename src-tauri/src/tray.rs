@@ -596,8 +596,9 @@ fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri
 
 fn last_transcript_text(entry: &HistoryEntry) -> &str {
     entry
-        .post_processed_text
+        .edited_text
         .as_deref()
+        .or(entry.post_processed_text.as_deref())
         .unwrap_or(&entry.transcription_text)
 }
 
@@ -682,6 +683,8 @@ mod tests {
             post_processed_text: post_processed.map(|text| text.to_string()),
             post_process_prompt: None,
             post_process_requested: false,
+            edited_text: None,
+            edited_at: None,
         }
     }
 
@@ -695,6 +698,13 @@ mod tests {
             locale: "en".to_string(),
             update_checks_enabled: true,
         }
+    }
+
+    #[test]
+    fn uses_the_users_edit_over_everything_else() {
+        let mut entry = build_entry("raw", Some("processed"));
+        entry.edited_text = Some("edited".to_string());
+        assert_eq!(last_transcript_text(&entry), "edited");
     }
 
     #[test]

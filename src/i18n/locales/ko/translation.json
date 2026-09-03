@@ -387,6 +387,20 @@
         "remove": "{{word}} 제거",
         "duplicate": "\"{{word}}\"이(가) 이미 존재합니다"
       },
+      "learning": {
+        "label": "수정 내용에서 학습",
+        "description": "기록에서 전사의 단어를 수정하면 Handy가 이를 사용자 지정 단어에 추가합니다. 어떤 변경이 새 단어인지는 후처리 모델이 판단합니다.",
+        "local": "이 Mac에서 처리됩니다.",
+        "cloud": "수정된 단어는 {{provider}}(으)로 전송됩니다.",
+        "postProcessingOff": "먼저 후처리를 켜고 모델을 선택하세요.",
+        "noModel": "먼저 후처리 모델을 선택하세요.",
+        "providerUnsupported": "이 후처리 제공자는 구조화된 질문에 응답할 수 없습니다. 다른 제공자를 선택하세요.",
+        "appleUnavailable": "이 Mac에서는 Apple Intelligence를 사용할 수 없습니다.",
+        "learnedBadge": "학습됨",
+        "appsLabel": "다른 앱에서의 수정으로도 학습",
+        "appsDescription": "붙여넣은 뒤 Handy는 붙여넣은 텍스트만 다시 읽고 거기서 바꾼 내용으로 학습합니다. 비밀번호 필드나 제외된 앱에서는 절대 하지 않습니다.",
+        "appsNeedsOverlay": "학습된 내용을 확인하고 취소할 수 있도록 먼저 오버레이를 켜세요."
+      },
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
         "description": "녹음에서 무음 구간을 걸러냅니다. 스트리밍 지원 모델은 더 긴 VAD 테일을 사용하며, VAD를 끄면 원본 오디오가 그대로 녹음됩니다."
@@ -475,7 +489,18 @@
       "retranscribe": "다시 전사",
       "retranscribeError": "다시 전사에 실패했습니다. 다시 시도해주세요.",
       "transcribing": "전사 중...",
-      "transcriptionFailed": "전사에 실패했습니다. 재시도 아이콘을 사용하여 다시 전사할 수 있습니다."
+      "transcriptionFailed": "전사에 실패했습니다. 재시도 아이콘을 사용하여 다시 전사할 수 있습니다.",
+      "edit": "전사 편집",
+      "saveEdit": "저장",
+      "cancelEdit": "취소",
+      "edited": "편집됨",
+      "editError": "편집 내용을 저장하지 못했습니다. 다시 시도해 주세요."
+    },
+    "learning": {
+      "learnedOne": "{{word}}을(를) 사용자 지정 단어에 추가했습니다",
+      "learnedMany": "새 단어 {{count}}개를 학습했습니다",
+      "undo": "실행 취소",
+      "undone": "다시 제거했습니다. 해당 단어는 자동으로 학습되지 않습니다."
     },
     "debug": {
       "title": "디버그",
@@ -704,7 +729,12 @@
     "copied": "복사됨",
     "dismiss": "닫기",
     "pin": "계속 녹음",
-    "finish": "완료"
+    "finish": "완료",
+    "learnedOne": "{{word}} 추가됨",
+    "learnedMany": "단어 {{count}}개 학습됨",
+    "undo": "실행 취소",
+    "keep": "유지",
+    "undone": "취소됨"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

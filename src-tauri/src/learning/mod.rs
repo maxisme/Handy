@@ -10,11 +10,21 @@
 pub mod check;
 pub mod diff;
 pub mod prefilter;
+pub mod readback;
+pub mod toast;
+pub mod wordlist;
 
 use log::debug;
 
-pub use check::{availability, Availability, VocabularyCheck};
+pub use check::{availability, Availability, CorrectionKind, VocabularyCheck};
 pub use prefilter::Candidate;
+
+/// One learned entry: what the speech model wrote and the spelling to add.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Learned {
+    pub heard: String,
+    pub meant: String,
+}
 
 /// What the learner already knows and must not learn again.
 pub struct LearnContext<'a> {
@@ -30,6 +40,60 @@ pub fn normalize_word(word: &str) -> String {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// True when `meant` is written the way English marks a proper noun inside
+/// `sentence`: a capitalised word that is not in all caps, carries no digits,
+/// and does not open a sentence. The on-device model calls invented names it
+/// has never seen "common words"; the user's capitalisation says otherwise,
+/// and the user typed it.
+pub fn written_as_proper_noun(meant: &str, sentence: &str) -> bool {
+    let Some(first) = meant.split_whitespace().next() else {
+        return false;
+    };
+    let mut chars = first.chars();
+    let Some(initial) = chars.next() else {
+        return false;
+    };
+    if !initial.is_uppercase() || first.chars().any(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    if !chars.any(|c| c.is_lowercase()) {
+        return false;
+    }
+    let Some(index) = sentence.find(meant) else {
+        return false;
+    };
+    let before = sentence[..index].trim_end();
+    !(before.is_empty() || before.ends_with(['.', '!', '?', ':']))
+}
+
+/// Tokens of a multi-word replacement that are terms in their own right, for
+/// when the model judged the whole replacement a rewording because it also
+/// carried ordinary words ("NCI C D" corrected to "can CI/CD"). A token
+/// counts when it has a capital after its first letter, a slash, letters
+/// next to digits, or is unknown to the system word list.
+pub fn term_tokens(meant: &str) -> Vec<String> {
+    meant
+        .split_whitespace()
+        .map(|t| {
+            t.trim_matches(|c: char| {
+                matches!(c, '.' | ',' | ';' | ':' | '!' | '?' | '(' | ')' | '"')
+            })
+        })
+        .filter(|t| t.chars().count() >= 2)
+        .filter(|t| {
+            let has_letters = t.chars().any(|c| c.is_alphabetic());
+            let inner_capital = t.chars().skip(1).any(|c| c.is_uppercase());
+            let mixed_digits = has_letters && t.chars().any(|c| c.is_ascii_digit());
+            has_letters
+                && (inner_capital
+                    || t.contains('/')
+                    || mixed_digits
+                    || wordlist::WordList::system().is_coined(t))
+        })
+        .map(str::to_string)
+        .collect()
 }
 
 /// Candidates from an edit, before the model is consulted. Empty when the
@@ -61,14 +125,14 @@ pub fn candidates(original: &str, edited: &str, ctx: &LearnContext<'_>) -> Vec<C
     out
 }
 
-/// Words to add to the dictionary after the user corrected `original` into
-/// `edited`. One model call per edit. Any failure yields no words.
+/// Entries to add to the dictionary after the user corrected `original` into
+/// `edited`. One model call per edit. Any failure yields nothing.
 pub async fn learn<C: VocabularyCheck>(
     original: &str,
     edited: &str,
     ctx: &LearnContext<'_>,
     check: &C,
-) -> Vec<String> {
+) -> Vec<Learned> {
     let candidates = candidates(original, edited, ctx);
     if candidates.is_empty() {
         return Vec::new();
@@ -80,18 +144,50 @@ pub async fn learn<C: VocabularyCheck>(
             return Vec::new();
         }
     };
-    let mut learned = Vec::new();
+    let mut learned: Vec<Learned> = Vec::new();
     for (candidate, kind) in candidates.iter().zip(kinds) {
-        if kind.is_vocabulary() {
+        let overridden = kind == CorrectionKind::CommonWord
+            && (written_as_proper_noun(&candidate.meant, edited)
+                || wordlist::WordList::system().is_coined(&candidate.meant));
+        if overridden {
+            debug!(
+                "learning: '{}' judged CommonWord but written as a name or absent from the dictionary, learning it",
+                candidate.meant
+            );
+        }
+        if kind.is_vocabulary() || overridden {
             let word = normalize_word(&candidate.meant);
-            if !word.is_empty() && !learned.contains(&word) {
-                learned.push(word);
+            if !word.is_empty() && !learned.iter().any(|l| l.meant == word) {
+                learned.push(Learned {
+                    heard: candidate.heard.clone(),
+                    meant: word,
+                });
             }
         } else {
-            debug!(
-                "learning: '{}' judged {:?}, not learned",
-                candidate.meant, kind
-            );
+            let terms = if candidate.meant.split_whitespace().count() > 1 {
+                term_tokens(&candidate.meant)
+            } else {
+                Vec::new()
+            };
+            if terms.is_empty() {
+                debug!(
+                    "learning: '{}' judged {:?}, not learned",
+                    candidate.meant, kind
+                );
+            }
+            for term in terms {
+                debug!(
+                    "learning: '{}' judged {:?} but contains the term '{}', learning it",
+                    candidate.meant, kind, term
+                );
+                let word = normalize_word(&term);
+                if !word.is_empty() && !learned.iter().any(|l| l.meant == word) {
+                    learned.push(Learned {
+                        heard: candidate.heard.clone(),
+                        meant: word,
+                    });
+                }
+            }
         }
     }
     learned
@@ -99,7 +195,15 @@ pub async fn learn<C: VocabularyCheck>(
 
 #[cfg(test)]
 mod tests {
-    use super::check::CorrectionKind;
+    #[test]
+    fn term_tokens_pick_acronyms_and_product_names_out_of_ordinary_words() {
+        assert_eq!(super::term_tokens("can CI/CD"), vec!["CI/CD"]);
+        assert_eq!(super::term_tokens("the iPhone, please"), vec!["iPhone"]);
+        assert_eq!(super::term_tokens("use K8s here"), vec!["K8s"]);
+        assert!(super::term_tokens("do this package export").is_empty());
+        assert!(super::term_tokens("Send it today").is_empty());
+    }
+
     use super::*;
     use std::future::Future;
     use std::sync::Mutex;
@@ -154,7 +258,13 @@ mod tests {
             &check,
         )
         .await;
-        assert_eq!(learned, vec!["ChargeBee".to_string()]);
+        assert_eq!(
+            learned,
+            vec![Learned {
+                heard: "Charge B".into(),
+                meant: "ChargeBee".into()
+            }]
+        );
         assert_eq!(check.calls(), 1);
     }
 
@@ -171,7 +281,10 @@ mod tests {
             &check,
         )
         .await;
-        assert_eq!(learned, vec!["Priyanka".to_string(), "Zentrix".to_string()]);
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["Priyanka", "Zentrix"]
+        );
         assert_eq!(check.asked.lock().unwrap()[0].len(), 2);
     }
 
@@ -223,6 +336,109 @@ mod tests {
         .await;
         assert!(learned.is_empty());
         assert_eq!(check.calls(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_capitalised_mid_sentence_word_overrides_a_common_word_verdict() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        let learned = learn(
+            "Load it into kah voo.",
+            "Load it into Kavuu.",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["Kavuu"]
+        );
+    }
+
+    #[tokio::test]
+    async fn a_term_inside_a_rewording_is_learned_on_its_own() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::Rewording]));
+        let learned = learn(
+            "NCI C D do this package export",
+            "can CI/CD do this package export",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["CI/CD"]
+        );
+    }
+
+    #[tokio::test]
+    async fn ordinary_words_judged_common_are_not_learned() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        assert!(learn(
+            "Send a notifications to the team.",
+            "Send a notification to the team.",
+            &ctx(&[], &[]),
+            &check
+        )
+        .await
+        .is_empty());
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        assert!(learn(
+            "Notifications go to the team.",
+            "Notification goes to the team.",
+            &ctx(&[], &[]),
+            &check
+        )
+        .await
+        .is_empty());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[tokio::test]
+    async fn coined_words_are_learned_even_at_sentence_start() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        let learned = learn(
+            "Zentrix is the new staging cluster",
+            "Zentryx is the new staging cluster",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["Zentryx"]
+        );
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        let learned = learn(
+            "Load it into kah voo.",
+            "Load it into kavuu.",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["kavuu"]
+        );
+    }
+
+    #[test]
+    fn proper_noun_shape() {
+        assert!(written_as_proper_noun(
+            "Ostrava",
+            "The Ostrava service handles enquiries."
+        ));
+        assert!(written_as_proper_noun(
+            "MacBook Pro",
+            "My MacBook Pro needs a restart."
+        ));
+        assert!(!written_as_proper_noun("Ostrava", "Ostrava handles it."));
+        assert!(!written_as_proper_noun("ostrava", "The ostrava service."));
+        assert!(!written_as_proper_noun("SDK", "Update the SDK first."));
+        assert!(!written_as_proper_noun("GPT4", "Use GPT4 for this."));
+        assert!(!written_as_proper_noun(
+            "Ostrava",
+            "Fine. Ostrava handles it."
+        ));
     }
 
     #[test]
