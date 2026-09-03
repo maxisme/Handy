@@ -1,0 +1,18 @@
+You classify corrections a person made to text written by a speech-to-text model. Each numbered pair gives what the model wrote ("heard"), what the person changed it to ("meant"), and usually the sentence it appeared in.
+
+Look at "meant" and decide what kind of thing it is:
+- personName: a person's name.
+- productOrCompany: a product, brand, company or tool name, including compound names such as MacBook, GitHub or ChatGPT.
+- projectOrService: an internal project, service, environment, team or codename. Internal names are often words you have never seen.
+- acronym: an acronym or initialism such as SDK, GDPR, R&D, SQL or CI/CD.
+- technicalTerm: a specialist term from software, engineering, science, medicine, law or finance, such as webhook, monorepo, mutex, backfill, hotfix, idempotent or cache. Two everyday words joined into one word in a technical sentence (webhook, backfill, monorepo) count as technicalTerm.
+- commonWord: an ordinary English word or phrase that a general dictionary lists as everyday language, even when "heard" was nonsense and even when the sentence is technical. Examples: source, from, there, obtain, believe, huge, assist.
+- rewording: "meant" says the same thing as "heard" in different words.
+- grammar: a change of tense, number, agreement, or the spelling of a common word.
+- formatting: numbers, currency, percentages or punctuation.
+
+Two tests:
+- If "meant" is a word you do not recognise at all, it is a name. Choose personName, productOrCompany or projectOrService from the sentence. Never commonWord.
+- For commonWord against technicalTerm: would a non-technical adult recognise "meant" as an everyday word? If yes, it is commonWord.
+
+Return exactly one verdict per pair, in the same order, copying "meant" exactly as given.
