@@ -1,6 +1,9 @@
 use anyhow::{anyhow, Result};
+
+use crate::frontmost::FrontmostApp;
+use crate::insights::InsightRow;
 use chrono::{DateTime, Local, Utc};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use rusqlite::{params, Connection, OptionalExtension};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
@@ -46,6 +49,24 @@ static MIGRATIONS: &[M] = &[
         );
         CREATE INDEX IF NOT EXISTS learned_words_batch ON learned_words(batch_id);",
     ),
+];
+
+/// Additive columns reconciled against the live schema rather than added as
+/// numbered migrations.
+///
+/// `rusqlite_migration` tracks progress as a count in `user_version`, so a
+/// database written by a build whose migration list differs — a fork, a
+/// branch, or another Handy install sharing this `history.db` — leaves the
+/// counter ahead of the columns that actually exist. Numbered migrations are
+/// then skipped without error and the schema silently loses columns. These
+/// are all nullable or defaulted, so adding whichever ones are missing on
+/// every start is both safe and idempotent.
+const RECONCILED_COLUMNS: &[(&str, &str)] = &[
+    ("duration_ms", "INTEGER"),
+    ("app_id", "TEXT"),
+    ("app_name", "TEXT"),
+    ("window_title", "TEXT"),
+    ("dictionary_fixes", "INTEGER NOT NULL DEFAULT 0"),
 ];
 
 /// A word learned from a correction. Rows stay after an undo, marked undone,
@@ -95,6 +116,23 @@ pub struct HistoryEntry {
     /// a retry never overwrites it and the original stays available to diff.
     pub edited_text: Option<String>,
     pub edited_at: Option<i64>,
+    /// Length of the recording, when known.
+    pub duration_ms: Option<i64>,
+    /// App the user dictated into (bundle id on macOS, executable on Windows).
+    pub app_id: Option<String>,
+    pub app_name: Option<String>,
+    pub window_title: Option<String>,
+    /// Custom-word corrections the fuzzy matcher applied to this transcript.
+    pub dictionary_fixes: i64,
+}
+
+/// Facts about a recording that are known when it is saved but are not part
+/// of the transcript itself.
+#[derive(Clone, Debug, Default)]
+pub struct EntryMetadata {
+    pub duration_ms: Option<i64>,
+    pub app: Option<FrontmostApp>,
+    pub dictionary_fixes: u32,
 }
 
 pub struct HistoryManager {
@@ -150,7 +188,25 @@ impl HistoryManager {
         debug!("Database version before migration: {}", version_before);
 
         // Apply any pending migrations
-        migrations.to_latest(&mut conn)?;
+        // A database whose `user_version` is ahead of this build's migration
+        // list is not an error to abort on: it happens whenever another Handy
+        // build with a longer list has opened the same `history.db`. The
+        // columns this code needs are guaranteed by `reconcile_columns`
+        // below, so carry on rather than refusing to start.
+        match migrations.to_latest(&mut conn) {
+            Ok(()) => {}
+            Err(rusqlite_migration::Error::MigrationDefinition(
+                rusqlite_migration::MigrationDefinitionError::DatabaseTooFarAhead,
+            )) => {
+                warn!(
+                    "History database is at a newer schema version than this build defines; \
+                     keeping it as-is and reconciling columns"
+                );
+            }
+            Err(err) => return Err(err.into()),
+        }
+
+        Self::reconcile_columns(&conn)?;
 
         // Get version after migration
         let version_after: i32 = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
@@ -224,6 +280,68 @@ impl HistoryManager {
         Ok(())
     }
 
+    /// Adds any [`RECONCILED_COLUMNS`] the table is missing. See that
+    /// constant for why these are not numbered migrations.
+    fn reconcile_columns(conn: &Connection) -> Result<()> {
+        let mut stmt = conn.prepare("PRAGMA table_info(transcription_history)")?;
+        let existing: std::collections::HashSet<String> = stmt
+            .query_map([], |row| row.get::<_, String>("name"))?
+            .collect::<std::result::Result<_, _>>()?;
+
+        for (name, definition) in RECONCILED_COLUMNS {
+            if existing.contains(*name) {
+                continue;
+            }
+            conn.execute(
+                &format!("ALTER TABLE transcription_history ADD COLUMN {name} {definition}"),
+                [],
+            )?;
+            info!("Added missing history column '{name}'");
+        }
+        Ok(())
+    }
+
+    /// The columns the insights page aggregates, for every dictation that
+    /// produced text. Failed recordings (empty transcripts) are excluded.
+    pub fn insight_rows(&self) -> Result<Vec<InsightRow>> {
+        let conn = self.get_connection()?;
+        Self::insight_rows_with_conn(&conn)
+    }
+
+    fn insight_rows_with_conn(conn: &Connection) -> Result<Vec<InsightRow>> {
+        let mut stmt = conn.prepare(
+            "SELECT
+                timestamp,
+                transcription_text,
+                post_processed_text,
+                post_process_requested,
+                duration_ms,
+                dictionary_fixes,
+                app_id,
+                app_name,
+                window_title
+             FROM transcription_history
+             WHERE transcription_text != ''
+             ORDER BY timestamp ASC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(InsightRow {
+                    timestamp: row.get("timestamp")?,
+                    transcription_text: row.get("transcription_text")?,
+                    post_processed_text: row.get("post_processed_text")?,
+                    post_process_requested: row.get("post_process_requested")?,
+                    duration_ms: row.get("duration_ms")?,
+                    dictionary_fixes: row.get("dictionary_fixes")?,
+                    app_id: row.get("app_id")?,
+                    app_name: row.get("app_name")?,
+                    window_title: row.get("window_title")?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
     fn get_connection(&self) -> Result<Connection> {
         Ok(Connection::open(&self.db_path)?)
     }
@@ -241,6 +359,11 @@ impl HistoryManager {
             post_process_requested: row.get("post_process_requested")?,
             edited_text: row.get("edited_text")?,
             edited_at: row.get("edited_at")?,
+            duration_ms: row.get("duration_ms")?,
+            app_id: row.get("app_id")?,
+            app_name: row.get("app_name")?,
+            window_title: row.get("window_title")?,
+            dictionary_fixes: row.get("dictionary_fixes")?,
         })
     }
 
@@ -257,9 +380,12 @@ impl HistoryManager {
         post_process_requested: bool,
         post_processed_text: Option<String>,
         post_process_prompt: Option<String>,
+        metadata: EntryMetadata,
     ) -> Result<HistoryEntry> {
         let timestamp = Utc::now().timestamp();
         let title = self.format_timestamp_title(timestamp);
+        let app = metadata.app.unwrap_or_default();
+        let dictionary_fixes = i64::from(metadata.dictionary_fixes);
 
         let conn = self.get_connection()?;
         conn.execute(
@@ -271,8 +397,13 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                post_process_requested,
+                duration_ms,
+                app_id,
+                app_name,
+                window_title,
+                dictionary_fixes
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 &file_name,
                 timestamp,
@@ -282,6 +413,11 @@ impl HistoryManager {
                 &post_processed_text,
                 &post_process_prompt,
                 post_process_requested,
+                metadata.duration_ms,
+                &app.app_id,
+                &app.name,
+                &app.window_title,
+                dictionary_fixes,
             ],
         )?;
 
@@ -297,6 +433,11 @@ impl HistoryManager {
             post_process_requested,
             edited_text: None,
             edited_at: None,
+            duration_ms: metadata.duration_ms,
+            app_id: app.app_id,
+            app_name: app.name,
+            window_title: app.window_title,
+            dictionary_fixes,
         };
 
         debug!("Saved history entry with id {}", entry.id);
@@ -344,7 +485,7 @@ impl HistoryManager {
 
         let entry = conn
             .query_row(
-                "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
+                "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at, duration_ms, app_id, app_name, window_title, dictionary_fixes
                  FROM transcription_history WHERE id = ?1",
                 params![id],
                 Self::map_history_entry,
@@ -376,7 +517,7 @@ impl HistoryManager {
             return Err(anyhow!("History entry {} not found", id));
         }
         let entry = conn.query_row(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at, duration_ms, app_id, app_name, window_title, dictionary_fixes
              FROM transcription_history WHERE id = ?1",
             params![id],
             Self::map_history_entry,
@@ -612,7 +753,7 @@ impl HistoryManager {
             (Some(cursor_id), Some(lim)) => {
                 let fetch_count = (lim + 1) as i64;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at, duration_ms, app_id, app_name, window_title, dictionary_fixes
                      FROM transcription_history
                      WHERE id < ?1
                      ORDER BY id DESC
@@ -626,7 +767,7 @@ impl HistoryManager {
             (None, Some(lim)) => {
                 let fetch_count = (lim + 1) as i64;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at, duration_ms, app_id, app_name, window_title, dictionary_fixes
                      FROM transcription_history
                      ORDER BY id DESC
                      LIMIT ?1",
@@ -638,7 +779,7 @@ impl HistoryManager {
             }
             (_, None) => {
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested, edited_text, edited_at, duration_ms, app_id, app_name, window_title, dictionary_fixes
                      FROM transcription_history
                      ORDER BY id DESC",
                 )?;
@@ -671,7 +812,12 @@ impl HistoryManager {
                 post_process_prompt,
                 post_process_requested,
              edited_text,
-             edited_at
+             edited_at,
+             duration_ms,
+             app_id,
+             app_name,
+             window_title,
+             dictionary_fixes
              FROM transcription_history
              ORDER BY timestamp DESC
              LIMIT 1",
@@ -700,7 +846,12 @@ impl HistoryManager {
                 post_process_prompt,
                 post_process_requested,
              edited_text,
-             edited_at
+             edited_at,
+             duration_ms,
+             app_id,
+             app_name,
+             window_title,
+             dictionary_fixes
              FROM transcription_history
              WHERE transcription_text != ''
              ORDER BY timestamp DESC
@@ -756,7 +907,12 @@ impl HistoryManager {
                 post_process_prompt,
                 post_process_requested,
              edited_text,
-             edited_at
+             edited_at,
+             duration_ms,
+             app_id,
+             app_name,
+             window_title,
+             dictionary_fixes
              FROM transcription_history
              WHERE id = ?1",
         )?;
@@ -814,33 +970,11 @@ mod tests {
     use rusqlite::{params, Connection};
 
     fn setup_conn() -> Connection {
-        let conn = Connection::open_in_memory().expect("open in-memory db");
-        conn.execute_batch(
-            "CREATE TABLE transcription_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_name TEXT NOT NULL,
-                timestamp INTEGER NOT NULL,
-                saved BOOLEAN NOT NULL DEFAULT 0,
-                title TEXT NOT NULL,
-                transcription_text TEXT NOT NULL,
-                post_processed_text TEXT,
-                post_process_prompt TEXT,
-                post_process_requested BOOLEAN NOT NULL DEFAULT 0,
-                edited_text TEXT,
-                edited_at INTEGER
-            );
-            CREATE TABLE learned_words (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                batch_id INTEGER NOT NULL,
-                heard TEXT NOT NULL,
-                meant TEXT NOT NULL,
-                source TEXT NOT NULL,
-                history_id INTEGER,
-                learned_at INTEGER NOT NULL,
-                undone BOOLEAN NOT NULL DEFAULT 0
-            );",
-        )
-        .expect("create tables");
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        Migrations::new(MIGRATIONS.to_vec())
+            .to_latest(&mut conn)
+            .expect("apply migrations");
+        HistoryManager::reconcile_columns(&conn).expect("reconcile columns");
         conn
     }
 
@@ -934,6 +1068,60 @@ mod tests {
         assert_eq!(entry.timestamp, 200);
         assert_eq!(entry.transcription_text, "second");
         assert_eq!(entry.post_processed_text.as_deref(), Some("processed"));
+    }
+
+    #[test]
+    fn reconcile_adds_columns_when_the_version_counter_ran_ahead() {
+        // A database written by a build with a different migration list: the
+        // counter is at the latest version but the columns never arrived.
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        Migrations::new(MIGRATIONS.to_vec())
+            .to_latest(&mut conn)
+            .expect("apply migrations");
+        conn.pragma_update(None, "user_version", 99)
+            .expect("fast-forward version");
+
+        HistoryManager::reconcile_columns(&conn).expect("first reconcile");
+        // Idempotent: a second pass must not fail on existing columns.
+        HistoryManager::reconcile_columns(&conn).expect("second reconcile");
+
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(transcription_history)")
+            .expect("prepare");
+        let columns: std::collections::HashSet<String> = stmt
+            .query_map([], |row| row.get::<_, String>("name"))
+            .expect("query")
+            .collect::<std::result::Result<_, _>>()
+            .expect("collect");
+        for (name, _) in RECONCILED_COLUMNS {
+            assert!(columns.contains(*name), "missing column {name}");
+        }
+    }
+
+    #[test]
+    fn insight_rows_skip_failed_recordings_and_read_the_new_columns() {
+        let conn = setup_conn();
+        insert_entry(&conn, 100, "hello there", None);
+        insert_entry(&conn, 200, "", None);
+        conn.execute(
+            "UPDATE transcription_history
+             SET duration_ms = 1500, dictionary_fixes = 2, app_id = 'com.example.app',
+                 app_name = 'Example', window_title = 'Doc'
+             WHERE timestamp = 100",
+            [],
+        )
+        .expect("update entry");
+
+        let rows = HistoryManager::insight_rows_with_conn(&conn).expect("rows");
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!(row.timestamp, 100);
+        assert_eq!(row.transcription_text, "hello there");
+        assert_eq!(row.duration_ms, Some(1500));
+        assert_eq!(row.dictionary_fixes, 2);
+        assert_eq!(row.app_id.as_deref(), Some("com.example.app"));
+        assert_eq!(row.app_name.as_deref(), Some("Example"));
+        assert_eq!(row.window_title.as_deref(), Some("Doc"));
     }
 
     #[test]

@@ -6,7 +6,7 @@ use crate::copy_prompt;
 use crate::focus;
 use crate::learning;
 use crate::managers::audio::AudioRecordingManager;
-use crate::managers::history::HistoryManager;
+use crate::managers::history::{EntryMetadata, HistoryManager};
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
@@ -781,6 +781,9 @@ impl ShortcutAction for TranscribeAction {
         let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
         let tm = Arc::clone(&app.state::<Arc<TranscriptionManager>>());
         let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
+        // Where the transcript will go. Sampled now, before the pipeline runs
+        // and the user has a chance to switch windows.
+        let frontmost = crate::frontmost::frontmost_app();
 
         set_tray_state(app, TrayIconState::Transcribing);
         // Stop should give immediate visual feedback. Live streaming can keep
@@ -840,6 +843,8 @@ impl ShortcutAction for TranscribeAction {
                 } else {
                     // Save WAV concurrently with transcription
                     let sample_count = samples.len();
+                    let duration_ms = (sample_count as i64 * 1000)
+                        / i64::from(crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE);
                     let file_name = format!("handy-{}.wav", chrono::Utc::now().timestamp());
                     let wav_path = hm.recordings_dir().join(&file_name);
                     let wav_path_for_verify = wav_path.clone();
@@ -863,6 +868,7 @@ impl ShortcutAction for TranscribeAction {
                         Ok(_) => tm.transcribe(samples),
                         Err(err) => Err(err),
                     };
+                    let dictionary_fixes = tm.take_last_dictionary_fixes();
 
                     // Await WAV save and verify
                     let wav_saved = match wav_handle.await {
@@ -938,6 +944,11 @@ impl ShortcutAction for TranscribeAction {
                                     post_process,
                                     processed.post_processed_text.clone(),
                                     processed.post_process_prompt.clone(),
+                                    EntryMetadata {
+                                        duration_ms: Some(duration_ms),
+                                        app: frontmost.clone(),
+                                        dictionary_fixes,
+                                    },
                                 ) {
                                     Ok(entry) => history_id = Some(entry.id),
                                     Err(err) => error!("Failed to save history entry: {}", err),
@@ -1031,6 +1042,11 @@ impl ShortcutAction for TranscribeAction {
                                     post_process,
                                     None,
                                     None,
+                                    EntryMetadata {
+                                        duration_ms: Some(duration_ms),
+                                        app: frontmost.clone(),
+                                        dictionary_fixes: 0,
+                                    },
                                 ) {
                                     error!("Failed to save failed history entry: {}", save_err);
                                 }

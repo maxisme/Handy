@@ -248,9 +248,19 @@ async changeAutoLearnFromAppsSetting(enabled: boolean) : Promise<Result<null, st
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Whether learning from corrections can run with the current settings, and
+ * if not, why. Drives the toggle's disabled state and its description.
+ */
 async getLearningAvailability() : Promise<Availability> {
     return await TAURI_INVOKE("get_learning_availability");
 },
+/**
+ * Learn custom words from one correction: `original` is what Handy produced,
+ * `edited` is what the user changed it to. Returns the words added to
+ * `custom_words`, which may be empty. Does nothing unless the setting is on
+ * and a post-processing model is ready.
+ */
 async learnFromCorrection(original: string, edited: string) : Promise<Result<string[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("learn_from_correction", { original, edited }) };
@@ -258,6 +268,71 @@ async learnFromCorrection(original: string, edited: string) : Promise<Result<str
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Store the user's edit of a history entry and learn from the difference
+ * between what they saw and what they typed.
+ */
+async saveHistoryEdit(id: number, editedText: string) : Promise<Result<SaveEditResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("save_history_edit", { id, editedText }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Take back everything one edit taught.
+ */
+async undoLearnedBatch(batchId: number) : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("undo_learned_batch", { batchId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Learned words still in the dictionary, newest first.
+ */
+async getLearnedWords() : Promise<Result<LearnedWord[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_learned_words") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Remove one learned word from the dictionary and never learn it again.
+ */
+async removeLearnedWord(word: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_learned_word", { word }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Overlay Undo button: takes back the pending batch and lets the toast
+ * linger briefly so the "Undone" confirmation is visible. Returns the words
+ * removed.
+ */
+async undoLearnedToast() : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("undo_learned_toast") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Overlay close button or countdown end: drops the pending batch and hides
+ * the toast without undoing.
+ */
+async dismissLearnedToast() : Promise<void> {
+    await TAURI_INVOKE("dismiss_learned_toast");
 },
 async changeExperimentalEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
@@ -965,63 +1040,6 @@ async retryHistoryEntryTranscription(id: number) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
-async saveHistoryEdit(id: number, editedText: string) : Promise<Result<SaveEditResult, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_history_edit", { id, editedText }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async undoLearnedBatch(batchId: number) : Promise<Result<string[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("undo_learned_batch", { batchId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async getLearnedWords() : Promise<Result<LearnedWord[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_learned_words") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async removeLearnedWord(word: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("remove_learned_word", { word }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Overlay Undo button: takes back the pending batch and lets the toast
- * linger briefly so the "Undone" confirmation is visible. Returns the words
- * removed.
- */
-async undoLearnedToast() : Promise<Result<string[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("undo_learned_toast") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Overlay close button or countdown end: drops the pending batch and hides
- * the toast without undoing.
- */
-async dismissLearnedToast() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("dismiss_learned_toast") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async updateHistoryLimit(limit: number) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_history_limit", { limit }) };
@@ -1033,6 +1051,17 @@ async updateHistoryLimit(limit: number) : Promise<Result<null, string>> {
 async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_recording_retention_period", { period }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Usage statistics for the Insights page, aggregated over the whole history.
+ */
+async getInsights() : Promise<Result<InsightsStats, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_insights") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1113,7 +1142,32 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * Which input channel to use on the selected microphone device.
  * None means "average all channels" (original behavior).
  */
-selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_always?: boolean; learn_from_corrections?: boolean; learning_denylist?: string[]; auto_learn_from_apps?: boolean; auto_learn_app_denylist?: string[]; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; 
+/**
+ * Run post-processing on the main transcribe hotkey too, not only on the
+ * dedicated post-processing hotkey. Has no effect while
+ * `post_process_enabled` is false.
+ */
+post_process_always?: boolean; 
+/**
+ * Learn new custom words from the user's corrections to transcripts.
+ * Needs a post-processing model, which makes the vocabulary judgment.
+ */
+learn_from_corrections?: boolean; 
+/**
+ * Match keys of learned words the user undid or removed. Never learned
+ * automatically again; a manual add still works.
+ */
+learning_denylist?: string[]; 
+/**
+ * After a paste, read the pasted text back from the focused field and
+ * learn from what the user changes there. macOS only, off by default.
+ */
+auto_learn_from_apps?: boolean; 
+/**
+ * Bundle identifiers whose fields are never read back.
+ */
+auto_learn_app_denylist?: string[]; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
@@ -1142,16 +1196,23 @@ overlay_style?: OverlayStyle;
  * so the text is still reachable. See `copy_prompt`.
  */
 copy_prompt_enabled?: boolean }
+export type AppUsage = { name: string; dictations: number; words: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
+export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 /**
  * Why learning cannot run right now. `Ready` means it can.
  */
 export type Availability = { state: "ready"; provider_id: string; local: boolean } | { state: "post_processing_off" } | { state: "no_model"; provider_id: string } | { state: "provider_unsupported"; provider_id: string } | { state: "apple_intelligence_unavailable" }
-export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
+export type CategoryUsage = { category: UsageCategory; dictations: number; words: number }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
+export type DayActivity = { 
+/**
+ * Local calendar day as `YYYY-MM-DD`.
+ */
+date: string; dictations: number; words: number }
 export type EngineType = 
 /**
  * Any GGML/GGUF model loaded through transcribe-cpp (Whisper, Parakeet,
@@ -1160,7 +1221,24 @@ export type EngineType =
  */
 "TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere"
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
-export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean; edited_text: string | null; edited_at: number | null }
+export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean; 
+/**
+ * The user's correction of this entry, kept apart from the transcript so
+ * a retry never overwrites it and the original stays available to diff.
+ */
+edited_text: string | null; edited_at: number | null; 
+/**
+ * Length of the recording, when known.
+ */
+duration_ms: number | null; 
+/**
+ * App the user dictated into (bundle id on macOS, executable on Windows).
+ */
+app_id: string | null; app_name: string | null; window_title: string | null; 
+/**
+ * Custom-word corrections the fuzzy matcher applied to this transcript.
+ */
+dictionary_fixes: number }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
 /**
  * Result of changing keyboard implementation
@@ -1170,6 +1248,24 @@ export type ImplementationChangeResult = { success: boolean;
  * List of binding IDs that were reset to defaults due to incompatibility
  */
 reset_bindings: string[] }
+export type InsightsStats = { total_words: number; total_dictations: number; words_this_month: number; words_previous_month: number; 
+/**
+ * Spoken words per minute over the dictations that recorded a duration.
+ */
+words_per_minute: number | null; timed_dictations: number; 
+/**
+ * Custom-word corrections applied by the fuzzy matcher.
+ */
+dictionary_fixes: number; 
+/**
+ * Words changed by post-processing where it ran.
+ */
+post_process_fixes: number; categories: CategoryUsage[]; 
+/**
+ * Dictations with no app recorded, which the categories exclude. Every
+ * entry saved before app attribution shipped counts here.
+ */
+unattributed: number; total_apps: number; top_apps: AppUsage[]; current_streak: number; longest_streak: number; active_today: boolean; activity: DayActivity[] }
 export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_pid: number | null; culprit_name: string | null; 
 /**
  * Counts only — key identity is deliberately never captured.
@@ -1177,6 +1273,10 @@ export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_
 key_down: number; key_up: number; flags_changed: number; mouse: number; duration_ms: number }
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
+/**
+ * A word learned from a correction. Rows stay after an undo, marked undone,
+ * so the dictionary UI can show what was learned and when.
+ */
 export type LearnedWord = { id: number; batch_id: number; heard: string; meant: string; source: string; history_id: number | null; learned_at: number }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
@@ -1220,6 +1320,9 @@ export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
+/**
+ * What a saved edit produced: the updated entry and anything learned from it.
+ */
 export type SaveEditResult = { entry: HistoryEntry; learned: string[]; batch_id: number | null }
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 
@@ -1313,6 +1416,7 @@ export type StreamWorkKind = "transcribing" | "polishing"
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
+export type UsageCategory = "aiPrompts" | "workMessages" | "personalMessages" | "emails" | "documents" | "code" | "other"
 export type VadBackend = "silero" | "earshot"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 

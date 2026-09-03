@@ -90,14 +90,14 @@ fn classify_windows_control(control_type: i32, value_writable: Option<bool>) -> 
 }
 
 #[cfg(target_os = "macos")]
-mod macos {
+pub(crate) mod macos {
     use std::ffi::c_void;
     use std::ptr::NonNull;
 
     use objc2_app_kit::NSRunningApplication;
     use objc2_core_foundation::{CFEqual, CFGetTypeID, CFRange, CFRetained, CFString, CFType};
 
-    type AXUIElementRef = *mut c_void;
+    pub(crate) type AXUIElementRef = *mut c_void;
     type AXValueRef = *mut c_void;
     type AXError = i32;
     type AXValueType = u32;
@@ -163,7 +163,10 @@ mod macos {
     }
 
     /// Copies an attribute value (Copy rule: the caller owns the result).
-    fn copy_attribute(element: AXUIElementRef, name: &str) -> Result<CFRetained<CFType>, AXError> {
+    pub(crate) fn copy_attribute(
+        element: AXUIElementRef,
+        name: &str,
+    ) -> Result<CFRetained<CFType>, AXError> {
         let attribute = CFString::from_str(name);
         let mut value: *const CFType = std::ptr::null();
         let err = unsafe { AXUIElementCopyAttributeValue(element, &attribute, &mut value) };

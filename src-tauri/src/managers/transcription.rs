@@ -13,7 +13,7 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
@@ -256,6 +256,9 @@ pub struct TranscriptionManager {
     is_loading: Arc<Mutex<bool>>,
     loading_condvar: Arc<Condvar>,
     reload_model_on_next_use: Arc<AtomicBool>,
+    /// Custom-word corrections applied by the most recent transcription,
+    /// handed to the history entry via `take_last_dictionary_fixes`.
+    last_dictionary_fixes: Arc<AtomicU32>,
     /// Routes real-time audio frames to the active streaming worker; see
     /// [`StreamRouter`]. Shared with the audio recorder so per-frame feeds skip
     /// Tauri state and the manager lock.
@@ -292,6 +295,7 @@ impl TranscriptionManager {
             is_loading: Arc::new(Mutex::new(false)),
             loading_condvar: Arc::new(Condvar::new()),
             reload_model_on_next_use: Arc::new(AtomicBool::new(false)),
+            last_dictionary_fixes: Arc::new(AtomicU32::new(0)),
             router: Arc::new(StreamRouter::new()),
             stream_active: Arc::new(AtomicBool::new(false)),
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
@@ -1102,6 +1106,12 @@ impl TranscriptionManager {
     /// to batch transcription. `Err` means finalize itself failed or timed out.
     /// A timeout may still leave the worker holding the engine, so callers
     /// should surface it instead of immediately starting a batch fallback.
+    /// Custom-word corrections applied by the last `transcribe` or
+    /// `finalize_stream`, reset to zero on read.
+    pub fn take_last_dictionary_fixes(&self) -> u32 {
+        self.last_dictionary_fixes.swap(0, Ordering::Relaxed)
+    }
+
     pub fn finalize_stream(&self) -> Result<Option<String>> {
         let Some(tx) = self.router.take() else {
             return Ok(None);
@@ -1126,13 +1136,15 @@ impl TranscriptionManager {
         let settings = get_settings(&self.app_handle);
         // Streaming models do not receive a decode prompt, so custom words
         // always go through the shared fuzzy post-correction path.
-        let filtered = post_process_transcription_text(
+        let (filtered, dictionary_fixes) = post_process_transcription_text_counted(
             finalized.text,
             &settings,
             false,
             &finalized.output_language,
             &finalized.supported_languages,
         );
+        self.last_dictionary_fixes
+            .store(dictionary_fixes, Ordering::Relaxed);
 
         self.maybe_unload_immediately("streaming transcription");
         Ok(Some(filtered))
@@ -1483,13 +1495,15 @@ impl TranscriptionManager {
         // family). We don't pass a prompt to non-whisper models (it requires the
         // whisper-kind run extension), so they still get fuzzy correction here,
         // same as the ONNX engines.
-        let filtered_result = post_process_transcription_text(
+        let (filtered_result, dictionary_fixes) = post_process_transcription_text_counted(
             result,
             &settings,
             model_is_whisper,
             &output_language,
             &model_languages,
         );
+        self.last_dictionary_fixes
+            .store(dictionary_fixes, Ordering::Relaxed);
 
         let et = std::time::Instant::now();
         let translation_note = if settings.translate_to_english {
@@ -1756,6 +1770,7 @@ fn transcribe_cpp_run_plan(
     }
 }
 
+#[cfg(test)]
 fn post_process_transcription_text(
     raw: String,
     settings: &AppSettings,
@@ -1763,13 +1778,35 @@ fn post_process_transcription_text(
     output_language: &OutputLanguageEvidence,
     supported_languages: &[String],
 ) -> String {
-    fail_open_text_transform(raw, |raw| {
+    post_process_transcription_text_counted(
+        raw,
+        settings,
+        custom_words_already_prompted,
+        output_language,
+        supported_languages,
+    )
+    .0
+}
+
+/// Returns the processed text and the number of custom-word corrections the
+/// fuzzy matcher applied to it.
+fn post_process_transcription_text_counted(
+    raw: String,
+    settings: &AppSettings,
+    custom_words_already_prompted: bool,
+    output_language: &OutputLanguageEvidence,
+    supported_languages: &[String],
+) -> (String, u32) {
+    let mut dictionary_fixes = 0u32;
+    let text = fail_open_text_transform(raw, |raw| {
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
-            apply_custom_words(
+            let corrected = apply_custom_words(
                 &raw,
                 &settings.custom_words,
                 settings.word_correction_threshold,
-            )
+            );
+            dictionary_fixes = crate::insights::count_dictionary_fixes(&raw, &corrected);
+            corrected
         } else {
             raw
         };
@@ -1801,7 +1838,8 @@ fn post_process_transcription_text(
         );
 
         normalize_transcription_output(&without_fillers)
-    })
+    });
+    (text, dictionary_fixes)
 }
 
 /// Optional text cleanup must never discard a successful model result. The

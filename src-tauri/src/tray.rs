@@ -685,6 +685,11 @@ mod tests {
             post_process_requested: false,
             edited_text: None,
             edited_at: None,
+            duration_ms: None,
+            app_id: None,
+            app_name: None,
+            window_title: None,
+            dictionary_fixes: 0,
         }
     }
 
