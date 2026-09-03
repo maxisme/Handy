@@ -388,6 +388,20 @@
         "remove": "{{word}} verwijderen",
         "duplicate": "\"{{word}}\" bestaat al"
       },
+      "learning": {
+        "label": "Leren van correcties",
+        "description": "Wanneer je in Geschiedenis een woord in een transcriptie corrigeert, voegt Handy het toe aan je eigen woorden. Je nabewerkingsmodel bepaalt welke wijzigingen nieuwe woorden zijn.",
+        "local": "Verwerkt op deze Mac.",
+        "cloud": "Gecorrigeerde woorden worden naar {{provider}} gestuurd.",
+        "postProcessingOff": "Schakel eerst nabewerking in en kies een model.",
+        "noModel": "Kies eerst een nabewerkingsmodel.",
+        "providerUnsupported": "Deze nabewerkingsprovider kan geen gestructureerde vragen beantwoorden. Kies een andere provider.",
+        "appleUnavailable": "Apple Intelligence is niet beschikbaar op deze Mac.",
+        "learnedBadge": "geleerd",
+        "appsLabel": "Ook leren van correcties in andere apps",
+        "appsDescription": "Na het plakken leest Handy alleen de geplakte tekst terug en leert van wat je daar verandert. Nooit in wachtwoordvelden of uitgesloten apps.",
+        "appsNeedsOverlay": "Zet eerst de overlay aan, zodat je kunt zien en ongedaan maken wat er is geleerd."
+      },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
         "description": "Filter stilte uit opnames. Streaming-modellen gebruiken een langere VAD-uitloop; het uitschakelen van VAD neemt de ruwe audio op."
@@ -476,7 +490,18 @@
       "retranscribe": "Opnieuw transcriberen",
       "retranscribeError": "Opnieuw transcriberen mislukt. Probeer het opnieuw.",
       "transcribing": "Transcriberen...",
-      "transcriptionFailed": "Transcriptie mislukt. Je kunt het opnieuw proberen via het herlaad-pictogram."
+      "transcriptionFailed": "Transcriptie mislukt. Je kunt het opnieuw proberen via het herlaad-pictogram.",
+      "edit": "Transcriptie bewerken",
+      "saveEdit": "Opslaan",
+      "cancelEdit": "Annuleren",
+      "edited": "Bewerkt",
+      "editError": "De bewerking kon niet worden opgeslagen. Probeer het opnieuw."
+    },
+    "learning": {
+      "learnedOne": "{{word}} is toegevoegd aan je eigen woorden",
+      "learnedMany": "{{count}} nieuwe woorden geleerd",
+      "undo": "Ongedaan maken",
+      "undone": "Weer verwijderd. Die woorden worden niet automatisch geleerd."
     },
     "insights": {
       "loading": "Loading insights...",
@@ -747,7 +772,12 @@
     "copied": "Gekopieerd",
     "dismiss": "Sluiten",
     "pin": "Blijven opnemen",
-    "finish": "Klaar"
+    "finish": "Klaar",
+    "learnedOne": "{{word}} toegevoegd",
+    "learnedMany": "{{count}} woorden geleerd",
+    "undo": "Ongedaan maken",
+    "keep": "Behouden",
+    "undone": "Ongedaan gemaakt"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",

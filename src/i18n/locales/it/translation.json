@@ -388,6 +388,20 @@
         "remove": "Rimuovi {{word}}",
         "duplicate": "\"{{word}}\" esiste già"
       },
+      "learning": {
+        "label": "Impara dalle correzioni",
+        "description": "Quando correggi una parola in una trascrizione nella Cronologia, Handy la aggiunge alle tue parole personalizzate. Usa il tuo modello di post-elaborazione per decidere quali modifiche sono parole nuove.",
+        "local": "Elaborato su questo Mac.",
+        "cloud": "Le parole corrette vengono inviate a {{provider}}.",
+        "postProcessingOff": "Attiva prima la post-elaborazione e scegli un modello.",
+        "noModel": "Scegli prima un modello di post-elaborazione.",
+        "providerUnsupported": "Questo provider di post-elaborazione non può rispondere a domande strutturate. Scegli un altro provider.",
+        "appleUnavailable": "Apple Intelligence non è disponibile su questo Mac.",
+        "learnedBadge": "appresa",
+        "appsLabel": "Impara anche dalle correzioni in altre app",
+        "appsDescription": "Dopo aver incollato, Handy rilegge solo il testo che ha incollato e impara da ciò che modifichi lì. Mai nei campi password o nelle app escluse.",
+        "appsNeedsOverlay": "Attiva prima l'overlay, così puoi vedere e annullare ciò che è stato appreso."
+      },
       "voiceActivityDetection": {
         "title": "Rilevamento dell'attività vocale",
         "description": "Filtra il silenzio dalle registrazioni. I modelli che supportano lo streaming utilizzano una coda VAD più lunga; disabilitando la VAD si registra l'audio grezzo."
@@ -476,7 +490,18 @@
       "retranscribe": "Ri-trascrivere",
       "retranscribeError": "Impossibile ri-trascrivere. Riprova.",
       "transcribing": "Trascrizione in corso...",
-      "transcriptionFailed": "Trascrizione fallita. Puoi ri-trascrivere usando l'icona di ripetizione."
+      "transcriptionFailed": "Trascrizione fallita. Puoi ri-trascrivere usando l'icona di ripetizione.",
+      "edit": "Modifica trascrizione",
+      "saveEdit": "Salva",
+      "cancelEdit": "Annulla",
+      "edited": "Modificata",
+      "editError": "Impossibile salvare la modifica. Riprova."
+    },
+    "learning": {
+      "learnedOne": "{{word}} è stato aggiunto alle tue parole personalizzate",
+      "learnedMany": "Apprese {{count}} nuove parole",
+      "undo": "Annulla",
+      "undone": "Rimosse di nuovo. Quelle parole non verranno apprese automaticamente."
     },
     "insights": {
       "loading": "Loading insights...",
@@ -744,7 +769,12 @@
     "copied": "Copiato",
     "dismiss": "Chiudi",
     "pin": "Continua a registrare",
-    "finish": "Fine"
+    "finish": "Fine",
+    "learnedOne": "Aggiunto {{word}}",
+    "learnedMany": "Apprese {{count}} parole",
+    "undo": "Annulla",
+    "keep": "Mantieni",
+    "undone": "Annullato"
   },
   "whatsNew": {
     "title": "Novità in Handy v{{version}}"

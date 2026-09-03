@@ -388,6 +388,20 @@
         "remove": "Usuń {{word}}",
         "duplicate": "\"{{word}}\" już istnieje"
       },
+      "learning": {
+        "label": "Ucz się z poprawek",
+        "description": "Gdy poprawisz słowo w transkrypcji w Historii, Handy doda je do Twoich własnych słów. Model postprocessingu decyduje, które zmiany są nowymi słowami.",
+        "local": "Przetwarzane na tym komputerze Mac.",
+        "cloud": "Poprawione słowa są wysyłane do {{provider}}.",
+        "postProcessingOff": "Najpierw włącz postprocessing i wybierz model.",
+        "noModel": "Najpierw wybierz model postprocessingu.",
+        "providerUnsupported": "Ten dostawca postprocessingu nie może odpowiadać na pytania strukturalne. Wybierz innego dostawcę.",
+        "appleUnavailable": "Apple Intelligence nie jest dostępne na tym komputerze Mac.",
+        "learnedBadge": "nauczone",
+        "appsLabel": "Ucz się też z poprawek w innych aplikacjach",
+        "appsDescription": "Po wklejeniu Handy odczytuje tylko wklejony tekst i uczy się z tego, co w nim zmienisz. Nigdy w polach haseł ani w wykluczonych aplikacjach.",
+        "appsNeedsOverlay": "Najpierw włącz nakładkę, aby widzieć i cofać to, czego się nauczono."
+      },
       "voiceActivityDetection": {
         "title": "Wykrywanie aktywności głosowej",
         "description": "Odfiltrowuje ciszę z nagrań. Modele obsługujące streaming używają dłuższego marginesu VAD; wyłączenie VAD nagrywa surowy dźwięk."
@@ -476,7 +490,18 @@
       "retranscribe": "Transkrybuj ponownie",
       "retranscribeError": "Nie udało się ponownie transkrybować. Spróbuj ponownie.",
       "transcribing": "Transkrybuję...",
-      "transcriptionFailed": "Transkrypcja nie powiodła się. Możesz transkrybować ponownie za pomocą ikony ponowienia."
+      "transcriptionFailed": "Transkrypcja nie powiodła się. Możesz transkrybować ponownie za pomocą ikony ponowienia.",
+      "edit": "Edytuj transkrypcję",
+      "saveEdit": "Zapisz",
+      "cancelEdit": "Anuluj",
+      "edited": "Edytowano",
+      "editError": "Nie udało się zapisać zmiany. Spróbuj ponownie."
+    },
+    "learning": {
+      "learnedOne": "Dodano {{word}} do Twoich własnych słów",
+      "learnedMany": "Nauczono się {{count}} nowych słów",
+      "undo": "Cofnij",
+      "undone": "Usunięto ponownie. Te słowa nie będą uczone automatycznie."
     },
     "insights": {
       "loading": "Loading insights...",
@@ -744,7 +769,12 @@
     "copied": "Skopiowano",
     "dismiss": "Zamknij",
     "pin": "Kontynuuj nagrywanie",
-    "finish": "Zakończ"
+    "finish": "Zakończ",
+    "learnedOne": "Dodano {{word}}",
+    "learnedMany": "Nauczono się {{count}} słów",
+    "undo": "Cofnij",
+    "keep": "Zachowaj",
+    "undone": "Cofnięto"
   },
   "whatsNew": {
     "title": "Nowości w Handy v{{version}}"

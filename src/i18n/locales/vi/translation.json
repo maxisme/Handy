@@ -388,6 +388,20 @@
         "remove": "Xóa {{word}}",
         "duplicate": "\"{{word}}\" đã tồn tại"
       },
+      "learning": {
+        "label": "Học từ các chỉnh sửa",
+        "description": "Khi bạn sửa một từ trong bản ghi ở Lịch sử, Handy sẽ thêm từ đó vào các từ tùy chỉnh của bạn. Mô hình hậu xử lý sẽ quyết định thay đổi nào là từ mới.",
+        "local": "Được xử lý trên máy Mac này.",
+        "cloud": "Các từ đã sửa được gửi đến {{provider}}.",
+        "postProcessingOff": "Hãy bật hậu xử lý và chọn một mô hình trước.",
+        "noModel": "Hãy chọn một mô hình hậu xử lý trước.",
+        "providerUnsupported": "Nhà cung cấp hậu xử lý này không thể trả lời các câu hỏi có cấu trúc. Hãy chọn nhà cung cấp khác.",
+        "appleUnavailable": "Apple Intelligence không khả dụng trên máy Mac này.",
+        "learnedBadge": "đã học",
+        "appsLabel": "Cũng học từ các chỉnh sửa trong ứng dụng khác",
+        "appsDescription": "Sau khi dán, Handy chỉ đọc lại phần văn bản đã dán và học từ những gì bạn thay đổi ở đó. Không bao giờ trong ô mật khẩu hoặc ứng dụng bị loại trừ.",
+        "appsNeedsOverlay": "Bật lớp phủ trước để bạn có thể xem và hoàn tác những gì đã học."
+      },
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
         "description": "Lọc bỏ khoảng lặng khỏi bản ghi. Các mô hình hỗ trợ truyền trực tiếp dùng đuôi VAD dài hơn; tắt VAD sẽ ghi âm thanh thô."
@@ -476,7 +490,18 @@
       "retranscribe": "Phiên âm lại",
       "retranscribeError": "Không thể phiên âm lại. Vui lòng thử lại.",
       "transcribing": "Đang phiên âm...",
-      "transcriptionFailed": "Phiên âm thất bại. Bạn có thể phiên âm lại bằng biểu tượng thử lại."
+      "transcriptionFailed": "Phiên âm thất bại. Bạn có thể phiên âm lại bằng biểu tượng thử lại.",
+      "edit": "Chỉnh sửa bản ghi",
+      "saveEdit": "Lưu",
+      "cancelEdit": "Hủy",
+      "edited": "Đã chỉnh sửa",
+      "editError": "Không thể lưu chỉnh sửa. Vui lòng thử lại."
+    },
+    "learning": {
+      "learnedOne": "Đã thêm {{word}} vào các từ tùy chỉnh của bạn",
+      "learnedMany": "Đã học {{count}} từ mới",
+      "undo": "Hoàn tác",
+      "undone": "Đã xóa lại. Những từ đó sẽ không được học tự động."
     },
     "insights": {
       "loading": "Loading insights...",
@@ -744,7 +769,12 @@
     "copied": "Đã sao chép",
     "dismiss": "Đóng",
     "pin": "Tiếp tục ghi âm",
-    "finish": "Xong"
+    "finish": "Xong",
+    "learnedOne": "Đã thêm {{word}}",
+    "learnedMany": "Đã học {{count}} từ",
+    "undo": "Hoàn tác",
+    "keep": "Giữ",
+    "undone": "Đã hoàn tác"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

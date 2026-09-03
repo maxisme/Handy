@@ -4,6 +4,7 @@ use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, S
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
 use crate::copy_prompt;
 use crate::focus;
+use crate::learning;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::{EntryMetadata, HistoryManager};
 use crate::managers::model::ModelManager;
@@ -97,30 +98,39 @@ fn word_set(text: &str) -> std::collections::HashSet<String> {
 }
 
 /// True when a post-processing result no longer looks like an edit of the
-/// transcript: the model answered it, summarised it, extracted a fragment, or
-/// wrote something new. Short inputs are exempt from the overlap test because
-/// legitimate edits like "fifty pounds" to "£50" share no words with the
-/// original.
-///
-/// The length test applies at every input size. It used to be limited to
-/// inputs of 20 characters or more, which left the shortest dictations with
-/// no protection at all: a one-word transcript that came back as a thousand
-/// characters passed both tests and was pasted. Cleaning never inflates text
-/// like that, whatever its length — the rules only fix spelling, punctuation
-/// and number words, and shorten more often than they lengthen.
-fn looks_like_rewrite(transcription: &str, output: &str) -> bool {
-    let input_len = transcription.trim().chars().count();
-    let output_len = output.trim().chars().count();
-    if output_len > input_len * 5 / 2 + 40 {
-        return true;
-    }
+/// transcript: the model answered it, summarised it, extracted a fragment,
+/// echoed part of the prompt, or wrote something new. Short inputs skip the
+/// word-overlap test because legitimate edits like "fifty pounds" to "£50"
+/// share no words with the original; they are held to a growth limit and the
+/// echo test instead, since a one-word transcript is exactly when the
+/// on-device model reaches for the prompt's own example.
+fn looks_like_rewrite(transcription: &str, output: &str, prompt_template: &str) -> bool {
+    let output_trimmed = output.trim();
     let input_words = word_set(transcription);
-    if input_words.len() < 5 {
-        return false;
-    }
     let output_words = word_set(output);
     let shared = input_words.intersection(&output_words).count();
-    (shared as f64) / (input_words.len() as f64) < 0.4
+    let overlap = if input_words.is_empty() {
+        0.0
+    } else {
+        shared as f64 / input_words.len() as f64
+    };
+    // A sentence lifted from the prompt that shares little with what was said
+    // is the model reciting its instructions, not editing the transcript.
+    if output_trimmed.chars().count() >= 8
+        && prompt_template.contains(output_trimmed)
+        && overlap < 0.5
+    {
+        return true;
+    }
+    let input_len = transcription.trim().chars().count();
+    let output_len = output_trimmed.chars().count();
+    if input_len >= 20 && output_len > input_len * 5 / 2 + 40 {
+        return true;
+    }
+    if input_words.len() < 5 {
+        return output_words.len() > input_words.len() + 2;
+    }
+    overlap < 0.4
 }
 
 /// Instructions for Apple Intelligence. The user's own template, with the
@@ -520,9 +530,40 @@ pub(crate) async fn process_transcription_output(
         final_text = converted_text;
     }
 
+    if let Some(hm) = app.try_state::<Arc<HistoryManager>>() {
+        match hm.learned_words() {
+            Ok(learned) if !learned.is_empty() => {
+                let aliases: Vec<(String, String)> =
+                    learned.into_iter().map(|l| (l.heard, l.meant)).collect();
+                let corrected = crate::audio_toolkit::apply_custom_words_with_aliases(
+                    &final_text,
+                    &settings.custom_words,
+                    &aliases,
+                    settings.word_correction_threshold,
+                );
+                if corrected != final_text {
+                    debug!(
+                        "Learned words applied: '{}' -> '{}'",
+                        utils::redact_text(&final_text),
+                        utils::redact_text(&corrected)
+                    );
+                    final_text = corrected;
+                }
+            }
+            Ok(_) => {}
+            Err(err) => debug!("Learned words not applied: {err}"),
+        }
+    }
+
     if post_process {
         if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
-            if looks_like_rewrite(&final_text, &processed_text) {
+            let template = settings
+                .post_process_selected_prompt_id
+                .as_ref()
+                .and_then(|id| settings.post_process_prompts.iter().find(|p| &p.id == id))
+                .map(|p| p.prompt.as_str())
+                .unwrap_or("");
+            if looks_like_rewrite(&final_text, &processed_text, template) {
                 warn!(
                     "Post-processing output discarded: it does not resemble the transcript ({} chars in, {} chars out). In: '{}' Out: '{}'",
                     final_text.chars().count(),
@@ -561,6 +602,9 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+        // A read-back session from the previous paste takes its final reading
+        // now, so its toast never lands on top of the new recording.
+        learning::readback::finish_now();
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -892,8 +936,9 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             // Save to history if WAV was saved
+                            let mut history_id = None;
                             if wav_saved {
-                                if let Err(err) = hm.save_entry(
+                                match hm.save_entry(
                                     file_name,
                                     transcription,
                                     post_process,
@@ -905,7 +950,8 @@ impl ShortcutAction for TranscribeAction {
                                         dictionary_fixes,
                                     },
                                 ) {
-                                    error!("Failed to save history entry: {}", err);
+                                    Ok(entry) => history_id = Some(entry.id),
+                                    Err(err) => error!("Failed to save history entry: {}", err),
                                 }
                             }
 
@@ -946,6 +992,13 @@ impl ShortcutAction for TranscribeAction {
                                                 true
                                             }
                                         };
+                                    if !paste_failed && target_is_text_input == Some(true) {
+                                        learning::readback::start(
+                                            &ah_clone,
+                                            transcript.clone(),
+                                            history_id,
+                                        );
+                                    }
                                     let settings = get_settings(&ah_clone);
                                     if copy_prompt::should_offer_copy(
                                         &settings,
@@ -1099,30 +1152,74 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
+    const TEMPLATE: &str =
+        "Clean it. E.g. \"Hey, uhh what is the um time\" → \"Hey, what is the time?\"";
+
     #[test]
     fn edits_that_keep_most_words_are_not_rewrites() {
         let input = "There are twenty five open tickets, um, and usage grew ten percent.";
         assert!(!looks_like_rewrite(
             input,
-            "There are 25 open tickets, and usage grew 10%."
+            "There are 25 open tickets, and usage grew 10%.",
+            TEMPLATE
         ));
-        assert!(!looks_like_rewrite("fifty pounds", "£50"));
+        assert!(!looks_like_rewrite("fifty pounds", "£50", TEMPLATE));
+        assert!(!looks_like_rewrite(
+            "It costs fifty pounds",
+            "It costs £50",
+            TEMPLATE
+        ));
+        assert!(!looks_like_rewrite(
+            "notification",
+            "Notification.",
+            TEMPLATE
+        ));
         assert!(!looks_like_rewrite(
             "Hey, uhh what is the um time",
-            "Hey, what is the time?"
+            "Hey, what is the time?",
+            TEMPLATE
         ));
+    }
+
+    #[test]
+    fn prompt_examples_echoed_back_are_rewrites() {
+        assert!(looks_like_rewrite(
+            "notification",
+            "Hey, what is the time?",
+            TEMPLATE
+        ));
+        assert!(looks_like_rewrite(
+            "send it",
+            "Hey, what is the time?",
+            TEMPLATE
+        ));
+    }
+
+    #[test]
+    fn short_inputs_may_not_grow_into_sentences() {
+        assert!(looks_like_rewrite(
+            "notification",
+            "Here is the notification you asked for",
+            TEMPLATE
+        ));
+        assert!(!looks_like_rewrite("ok", "OK, will do.", TEMPLATE));
     }
 
     #[test]
     fn answers_summaries_and_fragments_are_rewrites() {
         let input = "I just did a fairly long transcript about WhatsApp and it said some weird it did some weird rewording";
         let answer = "I'm sorry to hear that you encountered some issues with the transcript. However, I'm unable to directly access or analyze the content of the transcript you provided. If you can share some specific details or examples of the weird rewording, I might be able to help you understand or address the problem.";
-        assert!(looks_like_rewrite(input, answer));
+        assert!(looks_like_rewrite(input, answer, TEMPLATE));
         assert!(looks_like_rewrite(
             "Can you send me the report by Friday so the team has time to review it?",
-            "Sure! I'll make sure the report reaches you before Friday."
+            "Sure! I'll make sure the report reaches you before Friday.",
+            TEMPLATE
         ));
-        assert!(looks_like_rewrite("It costs fifty pounds a month.", "£50"));
+        assert!(looks_like_rewrite(
+            "It costs fifty pounds a month.",
+            "£50",
+            TEMPLATE
+        ));
     }
 
     #[test]
@@ -1144,24 +1241,22 @@ mod tests {
     }
 
     #[test]
-    fn short_transcript_echoing_the_prompt_is_discarded() {
-        // Observed with a local model: a one-word dictation came back as the
-        // instructions themselves. Both tests used to exempt short inputs.
-        let echoed_prompt = "This is a transcript generated by a speech-to-text model. \
-             Clean it by: 1. Fix spelling, capitalization, and punctuation errors \
-             2. Convert number words to digits (twenty-five -> 25) \
-             3. Replace spoken punctuation with symbols. Preserve exact meaning \
-             and word order. Do not paraphrase or reorder content.";
-        assert!(looks_like_rewrite("This", echoed_prompt));
-    }
-
-    #[test]
-    fn short_transcripts_still_accept_ordinary_cleanups() {
-        assert!(!looks_like_rewrite("this", "This."));
-        assert!(!looks_like_rewrite("fifty pounds", "£50"));
-        assert!(!looks_like_rewrite("ten percent", "10%"));
-        assert!(!looks_like_rewrite("um ok", "OK."));
-        assert!(!looks_like_rewrite("", " "));
+    fn observed_prompt_echo_on_a_one_word_transcript_is_discarded() {
+        // Real incident: a one-word dictation came back as ~1,100 characters
+        // of instructions. Not a verbatim slice of the template — the model
+        // paraphrased its opening and included the custom-words block that
+        // `with_custom_words` appends at runtime — so the echo test does not
+        // see it, and the short-input growth rule is what has to catch it.
+        let echoed = "This is a transcript generated by a speech-to-text model. Clean it by: \
+             1. Fix spelling, capitalization, and punctuation errors 2. Convert number \
+             words to digits 3. Replace spoken punctuation with symbols. Preserve exact \
+             meaning and word order. Terms this user says often, with their exact \
+             spelling: Kavuu, Zentryx.";
+        assert!(
+            !TEMPLATE.contains(echoed),
+            "not a verbatim slice of the prompt"
+        );
+        assert!(looks_like_rewrite("This", echoed, TEMPLATE));
     }
 
     #[test]
