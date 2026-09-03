@@ -217,17 +217,33 @@ mod session {
         );
 
         let started = Instant::now();
+        let placeholder = field.placeholder();
+        let cleared = |value: &str| {
+            let value = value.trim();
+            value.is_empty() || placeholder.as_deref().is_some_and(|p| p.trim() == value)
+        };
         // The most recent poll in which the text around the paste was still
         // intact. Sending a chat message or submitting a form empties the
         // field between polls, so the edit has to be taken from this value.
         let mut last_span: Option<String> = None;
+        let mut changed = false;
         while started.elapsed() < LIMIT && !stop.load(Ordering::SeqCst) {
             std::thread::sleep(POLL);
             if let Some(value) = field.value() {
+                if cleared(&value) {
+                    debug!("readback: field was cleared or submitted");
+                    break;
+                }
                 match current_span(&value, &snap) {
-                    Some(span) => last_span = Some(span),
+                    Some(span) => {
+                        if !changed && span != snap.pasted {
+                            changed = true;
+                            debug!("readback: span edited while watching");
+                        }
+                        last_span = Some(span);
+                    }
                     None if last_span.is_some() => {
-                        debug!("readback: field was cleared or submitted");
+                        debug!("readback: text around the paste changed");
                         break;
                     }
                     None => {}
@@ -242,19 +258,16 @@ mod session {
         // One more read after the loop: apps that keep the element alive give
         // the text as it was left; apps that drop it, or that emptied the
         // field on submit, fall back to the last poll that still had the span.
-        let edited = match field
+        let final_span = field
             .value()
-            .as_deref()
-            .and_then(|v| current_span(v, &snap))
-        {
+            .filter(|v| !cleared(v))
+            .and_then(|v| current_span(&v, &snap));
+        let edited = match final_span.or(last_span) {
             Some(span) => span,
-            None => match last_span {
-                Some(span) => span,
-                None => {
-                    debug!("readback: pasted span was never readable after the paste");
-                    return;
-                }
-            },
+            None => {
+                debug!("readback: pasted span was never readable after the paste");
+                return;
+            }
         };
         if edited.trim() == snap.pasted.trim() {
             debug!("readback: span unchanged");

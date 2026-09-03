@@ -317,6 +317,14 @@ mod macos {
             Some(value.downcast_ref::<CFString>()?.to_string())
         }
 
+        /// The field's placeholder (`AXPlaceholderValue`), shown when it is
+        /// empty. Some toolkits report it as the value once the text is gone.
+        pub fn placeholder(&self) -> Option<String> {
+            copy_string_attribute(element_ref(&self.element), "AXPlaceholderValue")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+        }
+
         /// The selection as `(location, length)` in UTF-16 code units, from
         /// `AXSelectedTextRange`. `None` if unavailable.
         pub fn selection_utf16(&self) -> Option<(usize, usize)> {

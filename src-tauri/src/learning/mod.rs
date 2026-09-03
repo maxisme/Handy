@@ -12,6 +12,7 @@ pub mod diff;
 pub mod prefilter;
 pub mod readback;
 pub mod toast;
+pub mod wordlist;
 
 use log::debug;
 
@@ -117,15 +118,16 @@ pub async fn learn<C: VocabularyCheck>(
     };
     let mut learned: Vec<Learned> = Vec::new();
     for (candidate, kind) in candidates.iter().zip(kinds) {
-        let proper_noun =
-            kind == CorrectionKind::CommonWord && written_as_proper_noun(&candidate.meant, edited);
-        if proper_noun {
+        let overridden = kind == CorrectionKind::CommonWord
+            && (written_as_proper_noun(&candidate.meant, edited)
+                || wordlist::WordList::system().is_coined(&candidate.meant));
+        if overridden {
             debug!(
-                "learning: '{}' judged CommonWord but written as a proper noun, learning it",
+                "learning: '{}' judged CommonWord but written as a name or absent from the dictionary, learning it",
                 candidate.meant
             );
         }
-        if kind.is_vocabulary() || proper_noun {
+        if kind.is_vocabulary() || overridden {
             let word = normalize_word(&candidate.meant);
             if !word.is_empty() && !learned.iter().any(|l| l.meant == word) {
                 learned.push(Learned {
@@ -296,25 +298,54 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn lowercase_and_sentence_initial_words_do_not_override() {
+    async fn ordinary_words_judged_common_are_not_learned() {
         let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
         assert!(learn(
+            "Send a notifications to the team.",
+            "Send a notification to the team.",
+            &ctx(&[], &[]),
+            &check
+        )
+        .await
+        .is_empty());
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        assert!(learn(
+            "Notifications go to the team.",
+            "Notification goes to the team.",
+            &ctx(&[], &[]),
+            &check
+        )
+        .await
+        .is_empty());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[tokio::test]
+    async fn coined_words_are_learned_even_at_sentence_start() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        let learned = learn(
+            "Zentrix is the new staging cluster",
+            "Zentryx is the new staging cluster",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["Zentryx"]
+        );
+        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
+        let learned = learn(
             "Load it into kah voo.",
             "Load it into kavuu.",
             &ctx(&[], &[]),
-            &check
+            &check,
         )
-        .await
-        .is_empty());
-        let check = Scripted::new(Ok(vec![CorrectionKind::CommonWord]));
-        assert!(learn(
-            "Kah voo is the service.",
-            "Kavuu is the service.",
-            &ctx(&[], &[]),
-            &check
-        )
-        .await
-        .is_empty());
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["kavuu"]
+        );
     }
 
     #[test]
