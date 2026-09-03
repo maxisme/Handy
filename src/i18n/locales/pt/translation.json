@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Tecla de atalho"
       },
+      "always": {
+        "label": "Pós-processar sempre",
+        "description": "Executa o pós-processamento em todos os ditados, não apenas com o atalho de pós-processamento. Adiciona cerca de um segundo por ditado."
+      },
       "api": {
         "title": "API (Compatível com OpenAI)",
         "provider": {

@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Genvejstast"
       },
+      "always": {
+        "label": "Efterbehandl altid",
+        "description": "Kør efterbehandling ved hver diktering, ikke kun via efterbehandlingsgenvejen. Tilføjer cirka et sekund pr. diktering."
+      },
       "api": {
         "title": "API (OpenAI-kompatibel)",
         "provider": {

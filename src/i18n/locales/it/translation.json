@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Tasto di scelta rapida"
       },
+      "always": {
+        "label": "Post-elabora sempre",
+        "description": "Esegue la post-elaborazione a ogni dettatura, non solo con la scorciatoia dedicata. Aggiunge circa un secondo per dettatura."
+      },
       "api": {
         "title": "API (Compatibile con OpenAI)",
         "provider": {

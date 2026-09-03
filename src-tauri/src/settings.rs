@@ -445,6 +445,11 @@ pub struct AppSettings {
     pub auto_submit_key: AutoSubmitKey,
     #[serde(default = "default_post_process_enabled")]
     pub post_process_enabled: bool,
+    /// Run post-processing on the main transcribe hotkey too, not only on the
+    /// dedicated post-processing hotkey. Has no effect while
+    /// `post_process_enabled` is false.
+    #[serde(default)]
+    pub post_process_always: bool,
     #[serde(default = "default_post_process_provider_id")]
     pub post_process_provider_id: String,
     #[serde(default = "default_post_process_providers")]
@@ -951,6 +956,7 @@ pub fn get_default_settings() -> AppSettings {
         auto_submit: default_auto_submit(),
         auto_submit_key: AutoSubmitKey::default(),
         post_process_enabled: default_post_process_enabled(),
+        post_process_always: false,
         post_process_provider_id: default_post_process_provider_id(),
         post_process_providers: default_post_process_providers(),
         post_process_api_keys: default_post_process_api_keys(),
@@ -1342,6 +1348,7 @@ mod tests {
             "auto_submit": false,
             "auto_submit_key": "enter",
             "post_process_enabled": false,
+            "post_process_always": false,
             "post_process_provider_id": "openai",
             "post_process_providers": [
                 {

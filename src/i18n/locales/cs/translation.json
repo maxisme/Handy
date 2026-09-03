@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Klávesová zkratka"
       },
+      "always": {
+        "label": "Vždy dodatečně zpracovat",
+        "description": "Spustí dodatečné zpracování při každém diktování, nejen přes vyhrazenou zkratku. Přidá přibližně jednu sekundu na diktování."
+      },
       "api": {
         "title": "API (kompatibilní s OpenAI)",
         "provider": {

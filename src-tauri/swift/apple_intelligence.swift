@@ -93,18 +93,21 @@ public func processTextWithSystemPrompt(
                 model: model,
                 instructions: swiftSystemPrompt
             )
-            var output: String
-
-            do {
-                let structured = try await session.respond(
-                    to: swiftUserContent,
-                    generating: CleanedTranscript.self
-                )
-                output = structured.content.cleanedText
-            } catch {
-                let fallbackGeneration = try await session.respond(to: swiftUserContent)
-                output = fallbackGeneration.content
-            }
+            // Guided generation keeps the model editing rather than replying:
+            // asked for plain text it answers dictations that look like
+            // requests. Greedy sampling keeps the edits consistent between
+            // runs; with the default sampling the same sentence is converted
+            // on one run and left alone on the next. The caller puts the whole
+            // prompt, transcript included, in the user message for the same
+            // reason (see actions.rs).
+            let options = GenerationOptions(sampling: .greedy)
+            let structured = try await session.respond(
+                to: swiftUserContent,
+                generating: CleanedTranscript.self,
+                options: options
+            )
+            var output = structured.content.cleanedText
+                .trimmingCharacters(in: .whitespacesAndNewlines)
 
             if tokenLimit > 0 {
                 output = truncatedText(output, limit: tokenLimit)

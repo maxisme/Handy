@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "快捷鍵"
       },
+      "always": {
+        "label": "一律進行後處理",
+        "description": "對每次聽寫都執行後處理，而不只限於後處理快速鍵。每次聽寫約增加一秒。"
+      },
       "api": {
         "title": "API（相容 OpenAI）",
         "provider": {

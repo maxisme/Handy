@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "ショートカット"
       },
+      "always": {
+        "label": "常に後処理を行う",
+        "description": "後処理ホットキーだけでなく、すべての口述で後処理を実行します。口述ごとに約1秒かかります。"
+      },
       "api": {
         "title": "API (OpenAI 互換)",
         "provider": {

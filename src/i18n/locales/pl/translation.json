@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Skrót klawiszowy"
       },
+      "always": {
+        "label": "Zawsze przetwarzaj końcowo",
+        "description": "Uruchamia przetwarzanie końcowe przy każdym dyktowaniu, nie tylko przez dedykowany skrót. Wydłuża każde dyktowanie o około sekundę."
+      },
       "api": {
         "title": "API (zgodne z OpenAI)",
         "provider": {

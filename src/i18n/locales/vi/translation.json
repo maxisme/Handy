@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Phím tắt"
       },
+      "always": {
+        "label": "Luôn hậu xử lý",
+        "description": "Chạy hậu xử lý cho mọi lần đọc chính tả, không chỉ với phím tắt hậu xử lý. Thêm khoảng một giây cho mỗi lần đọc."
+      },
       "api": {
         "title": "API (Tương thích OpenAI)",
         "provider": {
