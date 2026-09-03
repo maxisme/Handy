@@ -114,7 +114,7 @@ mod session {
     const CAPTURE_RETRY: Duration = Duration::from_millis(300);
     /// How often the field is re-read while it has focus. Each read is kept,
     /// because some apps (Chrome) drop the element the moment focus leaves.
-    const POLL: Duration = Duration::from_secs(1);
+    const POLL: Duration = Duration::from_millis(250);
     /// Longest a session waits for focus to leave the field.
     const LIMIT: Duration = Duration::from_secs(90);
 
@@ -217,11 +217,21 @@ mod session {
         );
 
         let started = Instant::now();
-        let mut last_value: Option<String> = None;
+        // The most recent poll in which the text around the paste was still
+        // intact. Sending a chat message or submitting a form empties the
+        // field between polls, so the edit has to be taken from this value.
+        let mut last_span: Option<String> = None;
         while started.elapsed() < LIMIT && !stop.load(Ordering::SeqCst) {
             std::thread::sleep(POLL);
             if let Some(value) = field.value() {
-                last_value = Some(value);
+                match current_span(&value, &snap) {
+                    Some(span) => last_span = Some(span),
+                    None if last_span.is_some() => {
+                        debug!("readback: field was cleared or submitted");
+                        break;
+                    }
+                    None => {}
+                }
             }
             if !field.is_focused() {
                 debug!("readback: focus left the field");
@@ -229,19 +239,22 @@ mod session {
             }
         }
 
-        // One more read after focus moved: apps that keep the element alive
-        // give the text as it was left; apps that drop it fall back to the
-        // last successful poll, at most one second old.
-        let value = match field.value().or(last_value) {
-            Some(value) => value,
-            None => {
-                debug!("readback: field was never readable");
-                return;
-            }
-        };
-        let Some(edited) = current_span(&value, &snap) else {
-            debug!("readback: text outside the pasted span changed, ignoring");
-            return;
+        // One more read after the loop: apps that keep the element alive give
+        // the text as it was left; apps that drop it, or that emptied the
+        // field on submit, fall back to the last poll that still had the span.
+        let edited = match field
+            .value()
+            .as_deref()
+            .and_then(|v| current_span(v, &snap))
+        {
+            Some(span) => span,
+            None => match last_span {
+                Some(span) => span,
+                None => {
+                    debug!("readback: pasted span was never readable after the paste");
+                    return;
+                }
+            },
         };
         if edited.trim() == snap.pasted.trim() {
             debug!("readback: span unchanged");
