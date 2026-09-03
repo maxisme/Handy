@@ -530,6 +530,31 @@ pub(crate) async fn process_transcription_output(
         final_text = converted_text;
     }
 
+    if let Some(hm) = app.try_state::<Arc<HistoryManager>>() {
+        match hm.learned_words() {
+            Ok(learned) if !learned.is_empty() => {
+                let aliases: Vec<(String, String)> =
+                    learned.into_iter().map(|l| (l.heard, l.meant)).collect();
+                let corrected = crate::audio_toolkit::apply_custom_words_with_aliases(
+                    &final_text,
+                    &settings.custom_words,
+                    &aliases,
+                    settings.word_correction_threshold,
+                );
+                if corrected != final_text {
+                    debug!(
+                        "Learned words applied: '{}' -> '{}'",
+                        utils::redact_text(&final_text),
+                        utils::redact_text(&corrected)
+                    );
+                    final_text = corrected;
+                }
+            }
+            Ok(_) => {}
+            Err(err) => debug!("Learned words not applied: {err}"),
+        }
+    }
+
     if post_process {
         if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
             let template = settings

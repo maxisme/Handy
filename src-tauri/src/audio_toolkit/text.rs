@@ -149,16 +149,47 @@ fn find_best_match<'a>(
 /// # Returns
 /// The corrected text with custom words applied
 pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -> String {
+    apply_custom_words_with_aliases(text, custom_words, &[], threshold)
+}
+
+/// [`apply_custom_words`] with extra spellings to match against. Each alias
+/// is `(heard, meant)`: a form the speech model has produced for `meant`
+/// before. It matches like the custom word itself, so a transcript close to
+/// a past mishearing is corrected even when it is far from the right
+/// spelling. Aliases whose `meant` is not a custom word are ignored.
+pub fn apply_custom_words_with_aliases(
+    text: &str,
+    custom_words: &[String],
+    aliases: &[(String, String)],
+    threshold: f64,
+) -> String {
     if custom_words.is_empty() {
         return text.to_string();
     }
 
     // Pre-compute normalized comparison keys to avoid repeated allocations.
-    let custom_word_match_keys: Vec<CustomWordMatchKey> = custom_words
+    let mut custom_word_match_keys: Vec<CustomWordMatchKey> = custom_words
         .iter()
         .enumerate()
         .flat_map(|(index, word)| build_custom_word_match_keys(word, index))
         .collect();
+    for (heard, meant) in aliases {
+        let meant_key = build_match_key(meant);
+        let Some(word_index) = custom_words
+            .iter()
+            .position(|w| build_match_key(w) == meant_key)
+        else {
+            continue;
+        };
+        let key = build_match_key(heard);
+        if is_supported_fuzzy_key(&key)
+            && !custom_word_match_keys
+                .iter()
+                .any(|k| k.word_index == word_index && k.key == key)
+        {
+            custom_word_match_keys.push(CustomWordMatchKey { word_index, key });
+        }
+    }
 
     let words: Vec<&str> = text.split_whitespace().collect();
     let mut result = Vec::new();
@@ -448,6 +479,35 @@ mod tests {
         let language = OutputLanguageEvidence::UserSelected(language.to_string());
         let filtered = remove_filler_words(text, &language, custom_filler_words, true);
         normalize_transcription_output(&filtered)
+    }
+
+    #[test]
+    fn aliases_match_forms_close_to_a_past_mishearing() {
+        let custom_words = vec!["Zentryx".to_string()];
+        let aliases = vec![("Zentrix".to_string(), "Zentryx".to_string())];
+        assert_eq!(
+            apply_custom_words("Centrix is the cluster", &custom_words, 0.18),
+            "Centrix is the cluster"
+        );
+        assert_eq!(
+            apply_custom_words_with_aliases(
+                "Centrix is the cluster",
+                &custom_words,
+                &aliases,
+                0.18
+            ),
+            "Zentryx is the cluster"
+        );
+    }
+
+    #[test]
+    fn aliases_for_words_not_in_the_list_are_ignored() {
+        let custom_words = vec!["Kavuu".to_string()];
+        let aliases = vec![("Zentrix".to_string(), "Zentryx".to_string())];
+        assert_eq!(
+            apply_custom_words_with_aliases("Zentrix is here", &custom_words, &aliases, 0.18),
+            "Zentrix is here"
+        );
     }
 
     #[test]

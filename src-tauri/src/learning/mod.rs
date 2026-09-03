@@ -68,6 +68,34 @@ pub fn written_as_proper_noun(meant: &str, sentence: &str) -> bool {
     !(before.is_empty() || before.ends_with(['.', '!', '?', ':']))
 }
 
+/// Tokens of a multi-word replacement that are terms in their own right, for
+/// when the model judged the whole replacement a rewording because it also
+/// carried ordinary words ("NCI C D" corrected to "can CI/CD"). A token
+/// counts when it has a capital after its first letter, a slash, letters
+/// next to digits, or is unknown to the system word list.
+pub fn term_tokens(meant: &str) -> Vec<String> {
+    meant
+        .split_whitespace()
+        .map(|t| {
+            t.trim_matches(|c: char| {
+                matches!(c, '.' | ',' | ';' | ':' | '!' | '?' | '(' | ')' | '"')
+            })
+        })
+        .filter(|t| t.chars().count() >= 2)
+        .filter(|t| {
+            let has_letters = t.chars().any(|c| c.is_alphabetic());
+            let inner_capital = t.chars().skip(1).any(|c| c.is_uppercase());
+            let mixed_digits = has_letters && t.chars().any(|c| c.is_ascii_digit());
+            has_letters
+                && (inner_capital
+                    || t.contains('/')
+                    || mixed_digits
+                    || wordlist::WordList::system().is_coined(t))
+        })
+        .map(str::to_string)
+        .collect()
+}
+
 /// Candidates from an edit, before the model is consulted. Empty when the
 /// edit is a rewrite, too long to diff, or contains nothing learnable.
 pub fn candidates(original: &str, edited: &str, ctx: &LearnContext<'_>) -> Vec<Candidate> {
@@ -136,10 +164,30 @@ pub async fn learn<C: VocabularyCheck>(
                 });
             }
         } else {
-            debug!(
-                "learning: '{}' judged {:?}, not learned",
-                candidate.meant, kind
-            );
+            let terms = if candidate.meant.split_whitespace().count() > 1 {
+                term_tokens(&candidate.meant)
+            } else {
+                Vec::new()
+            };
+            if terms.is_empty() {
+                debug!(
+                    "learning: '{}' judged {:?}, not learned",
+                    candidate.meant, kind
+                );
+            }
+            for term in terms {
+                debug!(
+                    "learning: '{}' judged {:?} but contains the term '{}', learning it",
+                    candidate.meant, kind, term
+                );
+                let word = normalize_word(&term);
+                if !word.is_empty() && !learned.iter().any(|l| l.meant == word) {
+                    learned.push(Learned {
+                        heard: candidate.heard.clone(),
+                        meant: word,
+                    });
+                }
+            }
         }
     }
     learned
@@ -147,6 +195,15 @@ pub async fn learn<C: VocabularyCheck>(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn term_tokens_pick_acronyms_and_product_names_out_of_ordinary_words() {
+        assert_eq!(super::term_tokens("can CI/CD"), vec!["CI/CD"]);
+        assert_eq!(super::term_tokens("the iPhone, please"), vec!["iPhone"]);
+        assert_eq!(super::term_tokens("use K8s here"), vec!["K8s"]);
+        assert!(super::term_tokens("do this package export").is_empty());
+        assert!(super::term_tokens("Send it today").is_empty());
+    }
+
     use super::*;
     use std::future::Future;
     use std::sync::Mutex;
@@ -294,6 +351,22 @@ mod tests {
         assert_eq!(
             learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
             vec!["Kavuu"]
+        );
+    }
+
+    #[tokio::test]
+    async fn a_term_inside_a_rewording_is_learned_on_its_own() {
+        let check = Scripted::new(Ok(vec![CorrectionKind::Rewording]));
+        let learned = learn(
+            "NCI C D do this package export",
+            "can CI/CD do this package export",
+            &ctx(&[], &[]),
+            &check,
+        )
+        .await;
+        assert_eq!(
+            learned.iter().map(|l| l.meant.as_str()).collect::<Vec<_>>(),
+            vec!["CI/CD"]
         );
     }
 
