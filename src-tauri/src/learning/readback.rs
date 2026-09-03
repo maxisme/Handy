@@ -106,10 +106,15 @@ mod session {
     use crate::secure_input;
     use crate::settings::{get_settings, OverlayStyle};
 
-    /// Time for the paste to land before the field is read.
+    /// Time for the paste to land before the field is first read.
     const SETTLE: Duration = Duration::from_millis(400);
-    /// How often the field is checked for a focus change.
-    const POLL: Duration = Duration::from_secs(2);
+    /// Web and Electron fields update their accessibility text lazily, so the
+    /// pasted span is looked for repeatedly before giving up.
+    const CAPTURE_ATTEMPTS: u32 = 8;
+    const CAPTURE_RETRY: Duration = Duration::from_millis(300);
+    /// How often the field is re-read while it has focus. Each read is kept,
+    /// because some apps (Chrome) drop the element the moment focus leaves.
+    const POLL: Duration = Duration::from_secs(1);
     /// Longest a session waits for focus to leave the field.
     const LIMIT: Duration = Duration::from_secs(90);
 
@@ -176,17 +181,32 @@ mod session {
                 return;
             }
         }
-        let Some(value) = field.value() else {
-            debug!("readback: field value unreadable");
-            return;
-        };
-        if value.len() > MAX_FIELD_BYTES {
-            debug!("readback: field too large ({} bytes)", value.len());
-            return;
+        let mut snap = None;
+        for attempt in 0..CAPTURE_ATTEMPTS {
+            if attempt > 0 {
+                std::thread::sleep(CAPTURE_RETRY);
+            }
+            if stop.load(Ordering::SeqCst) {
+                return;
+            }
+            let Some(value) = field.value() else {
+                continue;
+            };
+            if value.len() > MAX_FIELD_BYTES {
+                debug!("readback: field too large ({} bytes)", value.len());
+                return;
+            }
+            let caret = field.selection_utf16().map(|(loc, len)| loc + len);
+            if let Some(found) = snapshot(&value, &pasted, caret) {
+                snap = Some(found);
+                break;
+            }
         }
-        let caret = field.selection_utf16().map(|(loc, len)| loc + len);
-        let Some(snap) = snapshot(&value, &pasted, caret) else {
-            debug!("readback: pasted text not found in the field");
+        let Some(snap) = snap else {
+            debug!(
+                "readback: pasted text not found in the field after {} attempts",
+                CAPTURE_ATTEMPTS
+            );
             return;
         };
         debug!(
@@ -197,17 +217,27 @@ mod session {
         );
 
         let started = Instant::now();
+        let mut last_value: Option<String> = None;
         while started.elapsed() < LIMIT && !stop.load(Ordering::SeqCst) {
             std::thread::sleep(POLL);
+            if let Some(value) = field.value() {
+                last_value = Some(value);
+            }
             if !field.is_focused() {
                 debug!("readback: focus left the field");
                 break;
             }
         }
 
-        let Some(value) = field.value() else {
-            debug!("readback: field gone before the final reading");
-            return;
+        // One more read after focus moved: apps that keep the element alive
+        // give the text as it was left; apps that drop it fall back to the
+        // last successful poll, at most one second old.
+        let value = match field.value().or(last_value) {
+            Some(value) => value,
+            None => {
+                debug!("readback: field was never readable");
+                return;
+            }
         };
         let Some(edited) = current_span(&value, &snap) else {
             debug!("readback: text outside the pasted span changed, ignoring");
