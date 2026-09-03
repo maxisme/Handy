@@ -736,6 +736,7 @@
     "learnedOne": "{{word}} थपियो",
     "learnedMany": "{{count}} शब्दहरू सिकियो",
     "undo": "पूर्ववत गर्नुहोस्",
+    "keep": "राख्नुहोस्",
     "undone": "पूर्ववत गरियो"
   },
   "secureInput": {

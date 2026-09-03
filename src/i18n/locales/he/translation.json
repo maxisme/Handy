@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} נוספה",
     "learnedMany": "נלמדו {{count}} מילים",
     "undo": "ביטול",
+    "keep": "השאר",
     "undone": "בוטל"
   },
   "whatsNew": {

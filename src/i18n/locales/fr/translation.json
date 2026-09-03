@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} ajouté",
     "learnedMany": "{{count}} mots appris",
     "undo": "Annuler",
+    "keep": "Garder",
     "undone": "Annulé"
   },
   "whatsNew": {

@@ -733,6 +733,7 @@
     "learnedOne": "Добавлено: {{word}}",
     "learnedMany": "Выучено слов: {{count}}",
     "undo": "Отменить",
+    "keep": "Оставить",
     "undone": "Отменено"
   },
   "whatsNew": {

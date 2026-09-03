@@ -733,6 +733,7 @@
     "learnedOne": "Додано: {{word}}",
     "learnedMany": "Вивчено слів: {{count}}",
     "undo": "Скасувати",
+    "keep": "Залишити",
     "undone": "Скасовано"
   },
   "whatsNew": {

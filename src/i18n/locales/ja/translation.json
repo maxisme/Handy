@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} を追加しました",
     "learnedMany": "{{count}} 個の単語を学習しました",
     "undo": "元に戻す",
+    "keep": "保持",
     "undone": "元に戻しました"
   },
   "whatsNew": {

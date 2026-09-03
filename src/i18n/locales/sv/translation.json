@@ -733,6 +733,7 @@
     "learnedOne": "Lade till {{word}}",
     "learnedMany": "Lärde sig {{count}} ord",
     "undo": "Ångra",
+    "keep": "Behåll",
     "undone": "Ångrat"
   },
   "whatsNew": {

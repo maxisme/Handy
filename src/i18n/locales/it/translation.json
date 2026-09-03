@@ -733,6 +733,7 @@
     "learnedOne": "Aggiunto {{word}}",
     "learnedMany": "Apprese {{count}} parole",
     "undo": "Annulla",
+    "keep": "Mantieni",
     "undone": "Annullato"
   },
   "whatsNew": {

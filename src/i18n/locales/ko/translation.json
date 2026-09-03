@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} 추가됨",
     "learnedMany": "단어 {{count}}개 학습됨",
     "undo": "실행 취소",
+    "keep": "유지",
     "undone": "취소됨"
   },
   "whatsNew": {

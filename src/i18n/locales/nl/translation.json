@@ -736,6 +736,7 @@
     "learnedOne": "{{word}} toegevoegd",
     "learnedMany": "{{count}} woorden geleerd",
     "undo": "Ongedaan maken",
+    "keep": "Behouden",
     "undone": "Ongedaan gemaakt"
   },
   "secureInput": {

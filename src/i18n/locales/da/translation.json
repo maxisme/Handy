@@ -736,6 +736,7 @@
     "learnedOne": "Tilføjede {{word}}",
     "learnedMany": "Lærte {{count}} ord",
     "undo": "Fortryd",
+    "keep": "Behold",
     "undone": "Fortrudt"
   },
   "secureInput": {

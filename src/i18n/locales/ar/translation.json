@@ -733,6 +733,7 @@
     "learnedOne": "تمت إضافة {{word}}",
     "learnedMany": "تم تعلّم {{count}} كلمات",
     "undo": "تراجع",
+    "keep": "إبقاء",
     "undone": "تم التراجع"
   },
   "whatsNew": {

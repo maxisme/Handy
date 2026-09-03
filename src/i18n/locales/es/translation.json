@@ -733,6 +733,7 @@
     "learnedOne": "Se añadió {{word}}",
     "learnedMany": "Se aprendieron {{count}} palabras",
     "undo": "Deshacer",
+    "keep": "Conservar",
     "undone": "Deshecho"
   },
   "whatsNew": {

@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} hinzugefügt",
     "learnedMany": "{{count}} Wörter gelernt",
     "undo": "Rückgängig",
+    "keep": "Behalten",
     "undone": "Rückgängig gemacht"
   },
   "whatsNew": {

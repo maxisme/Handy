@@ -736,6 +736,7 @@
     "learnedOne": "Added {{word}}",
     "learnedMany": "Learned {{count}} words",
     "undo": "Undo",
+    "keep": "Keep",
     "undone": "Undone"
   },
   "secureInput": {

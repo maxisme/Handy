@@ -733,6 +733,7 @@
     "learnedOne": "已加入 {{word}}",
     "learnedMany": "已學習 {{count}} 個詞",
     "undo": "復原",
+    "keep": "保留",
     "undone": "已復原"
   },
   "whatsNew": {

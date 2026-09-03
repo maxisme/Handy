@@ -733,6 +733,7 @@
     "learnedOne": "Dodano {{word}}",
     "learnedMany": "Nauczono się {{count}} słów",
     "undo": "Cofnij",
+    "keep": "Zachowaj",
     "undone": "Cofnięto"
   },
   "whatsNew": {

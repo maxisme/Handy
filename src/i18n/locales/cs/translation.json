@@ -733,6 +733,7 @@
     "learnedOne": "Přidáno {{word}}",
     "learnedMany": "Naučeno {{count}} slov",
     "undo": "Vrátit",
+    "keep": "Ponechat",
     "undone": "Vráceno"
   },
   "whatsNew": {

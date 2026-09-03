@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} adicionada",
     "learnedMany": "{{count}} palavras aprendidas",
     "undo": "Desfazer",
+    "keep": "Manter",
     "undone": "Desfeito"
   },
   "whatsNew": {

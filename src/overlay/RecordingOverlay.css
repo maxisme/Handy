@@ -233,12 +233,26 @@
   min-width: var(--ov-rest-w);
   max-width: var(--ov-copy-max-w);
 }
-/* label (start) | Undo | dismiss (end): the label takes whatever the two
+/* label (start) | keep (tick) | undo (cross): the label takes whatever the two
    buttons leave and ellipsizes, so a long learned word never widens the pill
    past the native window. */
 .clearned .sbase {
   grid-template-columns: minmax(0, 1fr) auto auto;
   column-gap: 6px;
+}
+/* Tick keeps the words now; cross undoes. The bar counting down to "keep"
+   is the default, so the tick is the quiet one and the cross carries the
+   warning colour on hover. */
+.skeep svg {
+  width: 11px;
+  height: 11px;
+}
+.skeep:hover {
+  color: var(--s-accent);
+}
+.sundo:hover {
+  color: var(--color-error, #dc2626);
+  background: transparent;
 }
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */

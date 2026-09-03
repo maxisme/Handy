@@ -297,6 +297,27 @@ const RecordingOverlay: React.FC = () => {
 
   const cancelBtn = closeBtn("cancel", () => commands.cancelOperation());
 
+  const keepBtn = (label: string, onClick: () => void, disabled = false) => (
+    <button
+      className="sx skeep"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path
+          d="M3.5 8.5 L6.5 11.5 L12.5 4.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+
   // Pin: keep recording after the shortcut key is released. Shown while the
   // release would end the recording (a push-to-talk hold).
   const pinBtn = (
@@ -492,15 +513,30 @@ const RecordingOverlay: React.FC = () => {
               {label}
             </span>
             {!undone && (
-              <button className="scopy" onClick={handleUndo} disabled={undoing}>
-                {t("overlay.undo")}
-              </button>
+              <>
+                {keepBtn(t("overlay.keep"), () =>
+                  commands.dismissLearnedToast(),
+                )}
+                <div className="sbase-r">
+                  <button
+                    className="sx sundo"
+                    aria-label={t("overlay.undo")}
+                    title={t("overlay.undo")}
+                    onClick={handleUndo}
+                    disabled={undoing}
+                  >
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path
+                        d="M4 4 L12 12 M12 4 L4 12"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </>
             )}
-            <div className="sbase-r">
-              {closeBtn(t("overlay.dismiss"), () =>
-                commands.dismissLearnedToast(),
-              )}
-            </div>
           </div>
           {learned !== null && !undone && (
             <div

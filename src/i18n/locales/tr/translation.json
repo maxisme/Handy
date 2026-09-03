@@ -733,6 +733,7 @@
     "learnedOne": "{{word}} eklendi",
     "learnedMany": "{{count}} kelime öğrenildi",
     "undo": "Geri al",
+    "keep": "Sakla",
     "undone": "Geri alındı"
   },
   "whatsNew": {

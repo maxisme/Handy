@@ -733,6 +733,7 @@
     "learnedOne": "Đã thêm {{word}}",
     "learnedMany": "Đã học {{count}} từ",
     "undo": "Hoàn tác",
+    "keep": "Giữ",
     "undone": "Đã hoàn tác"
   },
   "whatsNew": {
