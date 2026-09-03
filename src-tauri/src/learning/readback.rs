@@ -78,6 +78,24 @@ pub fn current_span(value: &str, snap: &PasteSnapshot) -> Option<String> {
     Some(inner.to_string())
 }
 
+/// True when `next` keeps none of the words in `prev`. Between two polls a
+/// quarter of a second apart a person cannot retype a field from scratch, so
+/// this marks a submit, a clear, or a toolkit showing its placeholder as the
+/// value.
+pub fn replaced_wholesale(prev: &str, next: &str) -> bool {
+    let words = |text: &str| {
+        text.split_whitespace()
+            .map(|w| {
+                w.trim_matches(|c: char| !c.is_alphanumeric())
+                    .to_lowercase()
+            })
+            .filter(|w| !w.is_empty())
+            .collect::<std::collections::HashSet<_>>()
+    };
+    let prev = words(prev);
+    !prev.is_empty() && prev.is_disjoint(&words(next))
+}
+
 /// Largest field the read-back will look at.
 pub const MAX_FIELD_BYTES: usize = 200_000;
 
@@ -99,7 +117,7 @@ mod session {
     use log::{debug, info};
     use tauri::AppHandle;
 
-    use super::{current_span, snapshot, MAX_FIELD_BYTES};
+    use super::{current_span, replaced_wholesale, snapshot, MAX_FIELD_BYTES};
     use crate::commands::learning::learn_from_readback;
     use crate::focus::FocusedTextField;
     use crate::learning::{availability, toast, Availability};
@@ -235,6 +253,14 @@ mod session {
                     break;
                 }
                 match current_span(&value, &snap) {
+                    Some(span)
+                        if last_span
+                            .as_deref()
+                            .is_some_and(|p| replaced_wholesale(p, &span)) =>
+                    {
+                        debug!("readback: span replaced wholesale, treating as submitted");
+                        break;
+                    }
                     Some(span) => {
                         if !changed && span != snap.pasted {
                             changed = true;
@@ -261,7 +287,12 @@ mod session {
         let final_span = field
             .value()
             .filter(|v| !cleared(v))
-            .and_then(|v| current_span(&v, &snap));
+            .and_then(|v| current_span(&v, &snap))
+            .filter(|span| {
+                !last_span
+                    .as_deref()
+                    .is_some_and(|p| replaced_wholesale(p, span))
+            });
         let edited = match final_span.or(last_span) {
             Some(span) => span,
             None => {
@@ -289,6 +320,32 @@ mod session {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn placeholder_after_send_counts_as_wholesale_replacement() {
+        assert!(super::replaced_wholesale(
+            "Zentryx is the new staging cluster",
+            "Type / for commands"
+        ));
+        assert!(super::replaced_wholesale(
+            "Zentryx is the new staging cluster",
+            ""
+        ));
+    }
+
+    #[test]
+    fn edits_that_keep_any_word_are_not_wholesale() {
+        assert!(!super::replaced_wholesale(
+            "Zentrix is the new staging cluster",
+            "Zentryx is the new staging cluster"
+        ));
+        assert!(!super::replaced_wholesale("cluster", "Cluster."));
+    }
+
+    #[test]
+    fn nothing_replaces_an_empty_previous_value() {
+        assert!(!super::replaced_wholesale("", "Type / for commands"));
+    }
+
     use super::*;
 
     #[test]
