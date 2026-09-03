@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Tecla de acceso rápido"
       },
+      "always": {
+        "label": "Posprocesar siempre",
+        "description": "Ejecuta el posprocesado en cada dictado, no solo con el atajo de posprocesado. Añade alrededor de un segundo por dictado."
+      },
       "api": {
         "title": "API (compatible con OpenAI)",
         "provider": {

@@ -745,6 +745,7 @@ pub fn change_debug_mode_setting(app: AppHandle, enabled: bool) -> Result<(), St
     // Keep webview log streaming in sync: the live log viewer only exists in
     // debug mode, so logs are forwarded to the frontend only while it is on.
     crate::WEBVIEW_LOG_STREAMING.store(enabled, std::sync::atomic::Ordering::Relaxed);
+    crate::utils::TRANSCRIPT_LOGGING.store(enabled, std::sync::atomic::Ordering::Relaxed);
 
     // Emit event to notify frontend of debug mode change
     let _ = app.emit(
@@ -1033,6 +1034,15 @@ pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(),
         }
     };
     settings.auto_submit_key = parsed;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_post_process_always_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.post_process_always = enabled;
     settings::write_settings(&app, settings);
     Ok(())
 }

@@ -9,6 +9,7 @@ import {
   SettingContainer,
   SettingsGroup,
   Textarea,
+  ToggleSwitch,
 } from "@/components/ui";
 import { Button } from "../../ui/Button";
 import { ResetButton } from "../../ui/ResetButton";
@@ -426,12 +427,23 @@ PostProcessingSettingsPrompts.displayName = "PostProcessingSettingsPrompts";
 
 export const PostProcessingSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { getSetting, updateSetting, isUpdating } = useSettings();
+  const always = getSetting("post_process_always") || false;
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <SettingsGroup title={t("settings.postProcessing.hotkey.title")}>
         <ShortcutInput
           shortcutId="transcribe_with_post_process"
+          descriptionMode="tooltip"
+          grouped={true}
+        />
+        <ToggleSwitch
+          checked={always}
+          onChange={(checked) => updateSetting("post_process_always", checked)}
+          isUpdating={isUpdating("post_process_always")}
+          label={t("settings.postProcessing.always.label")}
+          description={t("settings.postProcessing.always.description")}
           descriptionMode="tooltip"
           grouped={true}
         />

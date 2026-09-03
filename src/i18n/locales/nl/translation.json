@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Sneltoets"
       },
+      "always": {
+        "label": "Altijd nabewerken",
+        "description": "Voer nabewerking uit bij elk dictaat, niet alleen via de nabewerkingssneltoets. Voegt ongeveer een seconde per dictaat toe."
+      },
       "api": {
         "title": "API (OpenAI-compatibel)",
         "provider": {

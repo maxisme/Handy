@@ -12,10 +12,16 @@ pub use crate::clipboard::*;
 pub use crate::overlay::*;
 pub use crate::tray::*;
 
-/// Preserve diagnostic text in development builds, but redact it in releases.
-/// Do not use for secrets such as API keys, which must always be redacted.
+/// Whether transcript text may appear in the log. Follows the debug mode
+/// setting at runtime so a release build can be diagnosed without rebuilding.
+pub static TRANSCRIPT_LOGGING: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+/// Preserve diagnostic text in development builds and while debug mode is on,
+/// but redact it otherwise. Do not use for secrets such as API keys, which
+/// must always be redacted.
 pub fn redact_text(text: &str) -> &str {
-    if cfg!(debug_assertions) {
+    if cfg!(debug_assertions) || TRANSCRIPT_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
         text
     } else {
         "[REDACTED]"

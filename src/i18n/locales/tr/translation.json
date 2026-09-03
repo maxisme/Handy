@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Kısayol Tuşu"
       },
+      "always": {
+        "label": "Her zaman son işleme uygula",
+        "description": "Son işlemeyi yalnızca son işleme kısayolunda değil, her diktede çalıştırır. Dikte başına yaklaşık bir saniye ekler."
+      },
       "api": {
         "title": "API (OpenAI Uyumlu)",
         "provider": {

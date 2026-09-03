@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Hotkey"
       },
+      "always": {
+        "label": "Always post-process",
+        "description": "Run post-processing on every dictation, not only the post-processing hotkey. Adds about a second per dictation."
+      },
       "api": {
         "title": "API (OpenAI Compatible)",
         "provider": {

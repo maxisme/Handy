@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Raccourci clavier"
       },
+      "always": {
+        "label": "Toujours post-traiter",
+        "description": "Exécute le post-traitement à chaque dictée, pas seulement avec le raccourci de post-traitement. Ajoute environ une seconde par dictée."
+      },
       "api": {
         "title": "API (Compatible OpenAI)",
         "provider": {

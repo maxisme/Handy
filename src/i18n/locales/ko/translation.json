@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "단축키"
       },
+      "always": {
+        "label": "항상 후처리",
+        "description": "후처리 단축키뿐 아니라 모든 받아쓰기에서 후처리를 실행합니다. 받아쓰기마다 약 1초가 추가됩니다."
+      },
       "api": {
         "title": "API (OpenAI 호환)",
         "provider": {

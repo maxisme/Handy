@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Tastenkürzel"
       },
+      "always": {
+        "label": "Immer nachbearbeiten",
+        "description": "Nachbearbeitung bei jedem Diktat ausführen, nicht nur über den Nachbearbeitungs-Hotkey. Verlängert jedes Diktat um etwa eine Sekunde."
+      },
       "api": {
         "title": "API (OpenAI-kompatibel)",
         "provider": {

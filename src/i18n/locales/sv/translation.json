@@ -408,6 +408,10 @@
       "hotkey": {
         "title": "Snabbkommando"
       },
+      "always": {
+        "label": "Efterbehandla alltid",
+        "description": "Kör efterbehandling vid varje diktering, inte bara via efterbehandlingsgenvägen. Lägger till ungefär en sekund per diktering."
+      },
       "api": {
         "title": "API (OpenAI-kompatibelt)",
         "provider": {
